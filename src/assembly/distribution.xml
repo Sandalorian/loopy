@@ -1,0 +1,60 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.2.0 
+                              http://maven.apache.org/xsd/assembly-2.2.0.xsd">
+    
+    <id>dist</id>
+    
+    <formats>
+        <format>zip</format>
+        <format>tar.gz</format>
+    </formats>
+    
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <baseDirectory>${project.artifactId}-${project.version}</baseDirectory>
+    
+    <!-- Include documentation files from project root -->
+    <fileSets>
+        <fileSet>
+            <directory>${project.basedir}</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>readme.md</include>
+                <include>CHANGELOG.md</include>
+                <include>LICENSE*</include>
+            </includes>
+        </fileSet>
+        
+        <!-- Include default configuration files -->
+        <fileSet>
+            <directory>${project.basedir}/src/main/resources</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>config.properties</include>
+                <include>example-workload.yaml</include>
+            </includes>
+        </fileSet>
+        
+        <!-- Include shell scripts and man page -->
+        <fileSet>
+            <directory>${project.basedir}/scripts</directory>
+            <outputDirectory>/scripts</outputDirectory>
+            <includes>
+                <include>loopy-completion.bash</include>
+                <include>loopy-completion.zsh</include>
+                <include>loopy.1</include>
+                <include>install-shell-integration.sh</include>
+            </includes>
+            <fileMode>0755</fileMode>
+        </fileSet>
+    </fileSets>
+    
+    <!-- Include the shaded JAR -->
+    <files>
+        <file>
+            <source>${project.build.directory}/${project.artifactId}-${project.version}.jar</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+    </files>
+    
+</assembly>

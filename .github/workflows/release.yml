@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+      
+      - name: Verify POM version matches tag
+        run: |
+          POM_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          TAG_VERSION=${{ steps.version.outputs.VERSION }}
+          if [ "$POM_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: POM version ($POM_VERSION) does not match tag version ($TAG_VERSION)"
+            exit 1
+          fi
+          echo "Version verified: $POM_VERSION"
+      
+      - name: Build release artifacts
+        run: mvn -B package -DskipTests
+      
+      - name: Generate checksums
+        run: |
+          cd target
+          sha256sum loopy-${{ steps.version.outputs.VERSION }}-dist.zip > checksums-sha256.txt
+          sha256sum loopy-${{ steps.version.outputs.VERSION }}-dist.tar.gz >> checksums-sha256.txt
+          echo "Generated checksums:"
+          cat checksums-sha256.txt
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Loopy v${{ steps.version.outputs.VERSION }}
+          generate_release_notes: true
+          files: |
+            target/loopy-${{ steps.version.outputs.VERSION }}-dist.zip
+            target/loopy-${{ steps.version.outputs.VERSION }}-dist.tar.gz
+            target/checksums-sha256.txt
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
