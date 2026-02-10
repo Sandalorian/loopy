@@ -1,0 +1,233 @@
+.TH LOOPY 1 "February 2026" "loopy 1.0.0" "User Commands"
+.SH NAME
+loopy \- Neo4j load generator for testing database performance
+.SH SYNOPSIS
+.B loopy
+[\fIGLOBAL OPTIONS\fR]
+.B COMMAND
+[\fICOMMAND OPTIONS\fR]
+.SH DESCRIPTION
+Loopy is a comprehensive Neo4j load testing tool that generates configurable workloads to test database performance. It supports various operation types, configurable threading, and detailed performance reporting.
+
+.SH GLOBAL OPTIONS
+.TP
+.BR \-h ", " \-\-help
+Show help information and exit
+.TP
+.BR \-V ", " \-\-version  
+Show version information and exit
+.TP
+.BR \-c ", " \-\-config " " \fIFILE\fR
+Configuration file path (default: config.properties)
+.TP
+.BR \-u ", " \-\-neo4j\-uri " " \fIURI\fR
+Neo4j connection URI (default: bolt://localhost:7687)
+.TP
+.BR \-U ", " \-\-username " " \fIUSER\fR
+Neo4j username (default: neo4j)
+.TP
+.BR \-P ", " \-\-password " " \fIPASSWORD\fR
+Neo4j password (interactive prompt if not provided)
+.TP
+.BR \-t ", " \-\-threads " " \fINUM\fR
+Number of worker threads (default: 4)
+.TP
+.BR \-d ", " \-\-duration " " \fISECONDS\fR
+Test duration in seconds (default: 300)
+.TP
+.BR \-w ", " \-\-write\-ratio " " \fIRATIO\fR
+Write operation ratio, 0.0-1.0 (default: 0.7)
+.TP
+.BR \-b ", " \-\-batch\-size " " \fINUM\fR
+Batch size for operations (default: 100)
+.TP
+.BR \-q ", " \-\-quiet
+Quiet mode - minimal output
+.TP
+.BR \-v ", " \-\-verbose
+Verbose mode - detailed output
+
+.SH COMMANDS
+.TP
+.B run
+Execute load test (default behavior). Runs the main load testing operation with configured parameters.
+.TP
+.B validate
+Validate configuration file without running the test. Checks configuration syntax and connectivity.
+.TP
+.B benchmark
+Run predefined benchmark scenarios. Execute standardized performance tests for comparison.
+.TP
+.B test\-connection
+Test Neo4j connectivity and perform diagnostics. Verify database connectivity and permissions.
+.TP
+.B setup
+Interactive setup wizard for guided configuration creation. Step-by-step configuration generation.
+.TP
+.B config
+Configuration management commands with subcommands:
+.RS 7
+.TP
+.B init
+Generate default configuration file
+.TP  
+.B validate
+Validate configuration file syntax and values
+.TP
+.B show
+Display current effective configuration
+.TP
+.B edit
+Open configuration file in default editor
+.RE
+.TP
+.B tune
+Performance tuning and optimization commands:
+.RS 7
+.TP
+.B \-\-show\-profiles
+Display available load profiles (light, medium, heavy, stress)
+.TP
+.B \-\-profile " " \fIPROFILE\fR
+Show details for specific load profile
+.TP
+.B \-\-auto\-tune
+Analyze system and provide optimization recommendations
+.RE
+.TP
+.B report
+Generate detailed reports from test results:
+.RS 7
+.TP
+.B \-\-format " " \fIFORMAT\fR
+Output format: html, markdown, or csv
+.TP
+.B \-\-output " " \fIFILE\fR
+Output file path
+.RE
+
+.SH EXAMPLES
+.TP
+Basic load test with default settings:
+.B loopy run
+
+.TP  
+Quick 30-second test with 2 threads:
+.B loopy run --duration 30 --threads 2
+
+.TP
+Interactive setup wizard:
+.B loopy setup
+
+.TP
+Test database connectivity:
+.B loopy test-connection --quick
+
+.TP
+Generate configuration file:
+.B loopy config init
+
+.TP
+Show performance tuning profiles:
+.B loopy tune --show-profiles
+
+.TP
+Generate HTML report:
+.B loopy report --format html --output results.html
+
+.TP
+High-intensity load test:
+.B loopy run --threads 16 --duration 600 --write-ratio 0.8 --batch-size 2000
+
+.SH CONFIGURATION
+Loopy uses a properties file for configuration. The default location is \fIconfig.properties\fR in the current directory. Configuration files support the following properties:
+
+.TP
+.B Neo4j Connection
+neo4j.uri, neo4j.username, neo4j.password
+.TP
+.B Load Testing Parameters  
+threads, duration.seconds, write.ratio, batch.size
+.TP
+.B Data Configuration
+node.labels, relationship.types, property.size.bytes
+.TP
+.B Reporting
+report.interval.seconds, csv.logging.enabled, csv.logging.file
+
+.SH LOAD PROFILES
+Loopy includes predefined load profiles for different testing scenarios:
+
+.TP
+.B light
+2 threads, 100 batch size, 30 seconds, 30% writes - for development testing
+.TP
+.B medium  
+4 threads, 500 batch size, 120 seconds, 50% writes - for staging environments
+.TP
+.B heavy
+8 threads, 1000 batch size, 300 seconds, 70% writes - for production testing
+.TP
+.B stress
+16 threads, 2000 batch size, 600 seconds, 80% writes - for stress testing
+
+.SH REPORTING
+Loopy can generate detailed reports in multiple formats:
+.TP
+.B HTML reports
+Rich, interactive reports with charts and detailed metrics
+.TP
+.B Markdown reports  
+Text-based reports suitable for documentation
+.TP
+.B CSV exports
+Raw data suitable for analysis in spreadsheet applications
+
+.SH FILES
+.TP
+.I config.properties
+Default configuration file
+.TP
+.I loopy-results.csv
+Default CSV output file (when CSV logging enabled)
+.TP
+.I ~/.loopyrc
+User-specific configuration file
+
+.SH ENVIRONMENT VARIABLES
+.TP
+.B LOOPY_NEO4J_URI
+Default Neo4j connection URI
+.TP
+.B LOOPY_USERNAME
+Default Neo4j username  
+.TP
+.B LOOPY_PASSWORD
+Default Neo4j password
+.TP
+.B LOOPY_CONFIG_FILE
+Default configuration file path
+
+.SH EXIT STATUS
+.TP
+.B 0
+Success
+.TP
+.B 1
+General error (configuration, connection, or runtime error)
+.TP  
+.B 2
+Command line argument error
+
+.SH AUTHOR
+Neo4j Loopy Development Team
+
+.SH REPORTING BUGS
+Report bugs to the project repository or development team.
+
+.SH COPYRIGHT
+Copyright 2026 Neo4j. This is free software; see the source for copying conditions.
+
+.SH SEE ALSO
+.BR neo4j (1),
+.BR cypher-shell (1)

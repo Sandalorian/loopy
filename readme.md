@@ -17,7 +17,7 @@ Loopy will output key statistics about the load generation process, including th
 
 ## Configuration
 
-Loopy can be configured through a `config.properties` file or command-line arguments:
+Loopy can be configured through a `config.properties` file or command-line arguments. Edit `src/main/resources/config.properties` or create your own configuration file with these parameters:
 
 ```properties
 # Neo4j Connection
@@ -35,6 +35,11 @@ batch.size=100
 node.labels=Person,Product,Order
 relationship.types=KNOWS,PURCHASED,CONTAINS
 property.size.bytes=1024
+
+# Reporting
+report.interval.seconds=10
+csv.logging.enabled=false
+csv.logging.file=loopy-stats.csv
 ```
 
 ## Output
@@ -52,27 +57,112 @@ Key metrics include:
 - Error rates and connection issues
 - Total operations completed
 
+## Prerequisites
+
+- Java 11 or later
+- Maven 3.6 or later
+- Neo4j database (running locally or remotely)
+
 ## Building
 
+### Using Maven directly:
 ```bash
-# Build with Maven
 mvn clean package
+```
 
-# Or use the build script
+### Using the build script:
+```bash
 ./build.sh
+```
+
+### Testing the build:
+```bash
+./test.sh
 ```
 
 ## Usage
 
+### Basic usage (default configuration):
 ```bash
-# Run with default configuration
 java -jar target/loopy-1.0.0.jar
+```
 
-# Override configuration via command line  
-java -jar target/loopy-1.0.0.jar --threads=8 --duration.seconds=600 --neo4j.uri=bolt://remote:7687
+### Show help and all available options:
+```bash
+java -jar target/loopy-1.0.0.jar --help
+```
 
-# Use custom configuration file
-java -jar target/loopy-1.0.0.jar --config=/path/to/custom.properties
+### With short options:
+```bash
+java -jar target/loopy-1.0.0.jar -t 8 -d 600 -u bolt://remote:7687 -U neo4j -P mypassword
+```
+
+### With long options:
+```bash
+java -jar target/loopy-1.0.0.jar --threads=8 --duration=600 --neo4j-uri=bolt://remote:7687
+```
+
+### Mixed short and long options:
+```bash
+java -jar target/loopy-1.0.0.jar -t 4 --duration=300 --write-ratio=0.8 -n "Person,Product"
+```
+
+### With custom configuration file:
+```bash
+java -jar target/loopy-1.0.0.jar --config=custom-config.properties --threads=16
+```
+
+### Enable CSV logging:
+```bash
+java -jar target/loopy-1.0.0.jar --csv-logging --csv-file=my-stats.csv
+```
+
+### All available CLI options:
+```
+  -b, --batch-size           Batch size for operations
+  -c, --config               Configuration file path  
+      --csv-file             CSV output file path
+      --csv-logging          Enable CSV logging
+  -d, --duration             Test duration in seconds
+  -h, --help                 Show help message and exit
+  -n, --node-labels          Comma-separated node labels
+  -P, --password             Neo4j password
+      --property-size        Property size in bytes
+  -r, --relationship-types   Comma-separated relationship types
+      --report-interval      Statistics reporting interval in seconds
+  -t, --threads              Number of worker threads
+  -u, --neo4j-uri           Neo4j connection URI
+  -U, --username             Neo4j username
+  -V, --version              Print version information and exit
+  -w, --write-ratio          Write operation ratio (0.0-1.0)
+```
+
+### Backward Compatibility
+
+Loopy maintains backward compatibility with the old argument format:
+```bash
+# Old format (still supported)
+java -jar target/loopy-1.0.0.jar --duration.seconds=300 --neo4j.uri=bolt://localhost:7687
+
+# New format (recommended)
+java -jar target/loopy-1.0.0.jar --duration=300 --neo4j-uri=bolt://localhost:7687
+```
+
+## Docker Usage (Optional)
+
+You can also containerize the application using Docker:
+
+```dockerfile
+FROM openjdk:11-jre-slim
+COPY target/loopy-1.0.0.jar /app/loopy.jar
+WORKDIR /app
+CMD ["java", "-jar", "loopy.jar"]
+```
+
+Build and run:
+```bash
+docker build -t loopy .
+docker run -e NEO4J_URI=bolt://host.docker.internal:7687 loopy --neo4j.uri=$NEO4J_URI
 ```
 
 ## Use Cases
