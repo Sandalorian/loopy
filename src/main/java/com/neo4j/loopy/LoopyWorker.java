@@ -16,8 +16,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Worker thread that generates load against Neo4j database
+ * using programmatic data generation (nodes, relationships, properties).
  */
-public class LoopyWorker implements Runnable {
+public class LoopyWorker implements Worker {
     private final Driver driver;
     private final LoopyConfig config;
     private final LoopyStats stats;
@@ -197,7 +198,13 @@ public class LoopyWorker implements Runnable {
         return properties;
     }
     
+    @Override
     public void stop() {
         running = false;
+    }
+    
+    @Override
+    public boolean isRunning() {
+        return running;
     }
 }
