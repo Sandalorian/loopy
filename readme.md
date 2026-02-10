@@ -124,18 +124,141 @@ java -jar target/loopy-1.0.0.jar --csv-logging --csv-file=my-stats.csv
       --csv-file             CSV output file path
       --csv-logging          Enable CSV logging
   -d, --duration             Test duration in seconds
+      --dry-run              Validate YAML and test connection without executing
+  -f, --cypher-file          Path to YAML workload file containing Cypher queries
+      --fail-fast            Abort on first query failure
   -h, --help                 Show help message and exit
   -n, --node-labels          Comma-separated node labels
   -P, --password             Neo4j password
       --property-size        Property size in bytes
   -r, --relationship-types   Comma-separated relationship types
       --report-interval      Statistics reporting interval in seconds
+      --stats-format         Statistics output format: summary, detailed, json
   -t, --threads              Number of worker threads
   -u, --neo4j-uri           Neo4j connection URI
   -U, --username             Neo4j username
+  -v, --verbose              Verbose mode - detailed output
+      --verbose-stats        Enable per-query statistics
   -V, --version              Print version information and exit
   -w, --write-ratio          Write operation ratio (0.0-1.0)
 ```
+
+## YAML-Based Cypher Workload
+
+Loopy supports executing custom Cypher queries defined in a YAML file, providing an alternative to programmatic data generation. This allows you to simulate realistic application workloads with weighted query selection.
+
+### Basic Usage
+
+```bash
+# Run with a YAML workload file
+java -jar target/loopy-1.0.0.jar --cypher-file=workload.yaml -t 8 -d 300
+
+# Validate workload without executing
+java -jar target/loopy-1.0.0.jar --cypher-file=workload.yaml --dry-run
+
+# Enable per-query statistics
+java -jar target/loopy-1.0.0.jar --cypher-file=workload.yaml --verbose-stats
+
+# Output statistics in JSON format
+java -jar target/loopy-1.0.0.jar --cypher-file=workload.yaml --stats-format=json
+```
+
+### YAML Workload Format
+
+```yaml
+name: "E-commerce Workload"
+description: "Simulates typical e-commerce read/write patterns"
+
+queries:
+  - id: "find-user-by-id"
+    cypher: "MATCH (u:User {id: $userId}) RETURN u"
+    weight: 30
+    type: read
+    parameters:
+      userId: "random:uuid"
+
+  - id: "create-order"
+    cypher: "CREATE (o:Order {id: $orderId, total: $amount}) RETURN o"
+    weight: 10
+    type: write
+    parameters:
+      orderId: "random:uuid"
+      amount: "random:double:0:1000"
+
+  - id: "product-search"
+    cypher: "MATCH (p:Product) WHERE p.name CONTAINS $term RETURN p LIMIT 20"
+    weight: 50
+    type: read
+    parameters:
+      term: "random:string:5"
+```
+
+### Parameter Generators
+
+Loopy supports the following parameter generators:
+
+| Generator | Format | Description | Example |
+|-----------|--------|-------------|---------|
+| UUID | `random:uuid` | Generates a random UUID | `"550e8400-e29b-41d4-a716-446655440000"` |
+| Integer | `random:int:min:max` | Random integer in range | `random:int:1:1000` → `42` |
+| Double | `random:double:min:max` | Random decimal in range | `random:double:0:100` → `57.832` |
+| String | `random:string:length` | Random alphanumeric string | `random:string:8` → `"aB3kL9mP"` |
+| Long | `random:long:min:max` | Random long in range | `random:long:0:9999999999` |
+| Boolean | `random:boolean` | Random true/false | `true` or `false` |
+| Literal | `any value` | Used as-is | `"fixed-value"` |
+
+### Weight-Based Query Selection
+
+Queries are selected based on their configured weights. The weight represents the relative probability of selecting that query compared to others.
+
+**Example:**
+- Query A: weight = 30
+- Query B: weight = 10
+- Query C: weight = 50
+
+Total weight = 90
+- Query A will be selected ~33% of the time (30/90)
+- Query B will be selected ~11% of the time (10/90)
+- Query C will be selected ~56% of the time (50/90)
+
+### Per-Query Statistics
+
+When `--verbose-stats` is enabled, Loopy tracks statistics for each individual query:
+
+```
+Per-Query Final Statistics:
+----------------------------
+find-user-by-id:
+  Count: 1234 (writes: 0, reads: 1234)
+  Avg Response: 5.2ms
+  Percentiles: p50=4.0ms, p95=12.0ms, p99=25.0ms
+  Errors: 0
+create-order:
+  Count: 456 (writes: 456, reads: 0)
+  Avg Response: 8.7ms
+  Percentiles: p50=7.0ms, p95=18.0ms, p99=35.0ms
+  Errors: 2
+```
+
+### Example Workload File
+
+See `src/main/resources/example-workload.yaml` for a complete example workload file.
+
+### Validation
+
+Loopy validates the YAML workload file before execution:
+- Verifies file exists and is readable
+- Parses and validates YAML structure
+- Checks all query IDs are unique
+- Verifies all weights are positive
+- Validates parameter generator specifications
+- Optionally validates Cypher syntax against the target database
+
+### Notes
+
+- `--cypher-file` is mutually exclusive with `--node-labels` and `--relationship-types`
+- `--write-ratio` is ignored when using `--cypher-file` (queries have explicit types)
+- Use `--fail-fast` to abort on the first query failure (default: continue with next query)
 
 ### Backward Compatibility
 

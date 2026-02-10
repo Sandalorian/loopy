@@ -1,0 +1,110 @@
+# E-commerce Workload Example
+# This YAML file defines a simulated e-commerce workload with read/write patterns
+# for testing Neo4j performance under realistic conditions.
+
+name: "E-commerce Workload"
+description: "Simulates typical e-commerce read/write patterns with user lookups, product searches, order creation, and inventory updates"
+
+queries:
+  # High-frequency read: User lookup by ID
+  # This is the most common operation - finding a user by their unique ID
+  - id: "find-user-by-id"
+    cypher: "MATCH (u:User {id: $userId}) RETURN u"
+    weight: 30
+    type: read
+    parameters:
+      userId: "random:uuid"
+
+  # Medium-frequency write: Create new order
+  # Simulates order creation with random order ID and total amount
+  - id: "create-order"
+    cypher: "CREATE (o:Order {id: $orderId, total: $amount, created: datetime()}) RETURN o"
+    weight: 10
+    type: write
+    parameters:
+      orderId: "random:uuid"
+      amount: "random:double:0:1000"
+
+  # High-frequency read: Product text search
+  # Simulates users searching for products by name
+  - id: "product-search"
+    cypher: "MATCH (p:Product) WHERE p.name CONTAINS $term RETURN p LIMIT 20"
+    weight: 50
+    type: read
+    parameters:
+      term: "random:string:5"
+
+  # Low-frequency write: Update inventory
+  # Simulates inventory updates when orders are placed
+  - id: "update-inventory"
+    cypher: "MATCH (p:Product {id: $productId}) SET p.stock = coalesce(p.stock, 100) - 1 RETURN p"
+    weight: 10
+    type: write
+    parameters:
+      productId: "random:int:1:10000"
+
+  # Medium-frequency read: Get user's recent orders
+  # Retrieves orders for a specific user, ordered by date
+  - id: "get-user-orders"
+    cypher: |
+      MATCH (u:User {id: $userId})-[:PLACED]->(o:Order)
+      RETURN o
+      ORDER BY o.created DESC
+      LIMIT 10
+    weight: 20
+    type: read
+    parameters:
+      userId: "random:uuid"
+
+  # Low-frequency read: Product recommendations
+  # Find products that are frequently purchased together
+  - id: "product-recommendations"
+    cypher: |
+      MATCH (p:Product {id: $productId})<-[:CONTAINS]-(o:Order)-[:CONTAINS]->(rec:Product)
+      WHERE p <> rec
+      RETURN rec.id AS productId, rec.name AS name, count(*) AS frequency
+      ORDER BY frequency DESC
+      LIMIT 5
+    weight: 5
+    type: read
+    parameters:
+      productId: "random:int:1:1000"
+
+  # Low-frequency write: Add product to cart
+  # Creates a relationship between user and product in their cart
+  - id: "add-to-cart"
+    cypher: |
+      MATCH (u:User {id: $userId}), (p:Product {id: $productId})
+      MERGE (u)-[r:HAS_IN_CART]->(p)
+      SET r.quantity = coalesce(r.quantity, 0) + 1
+      RETURN r
+    weight: 15
+    type: write
+    parameters:
+      userId: "random:uuid"
+      productId: "random:int:1:10000"
+
+  # Low-frequency read: Get cart contents
+  # Retrieves all products in a user's cart
+  - id: "get-cart"
+    cypher: |
+      MATCH (u:User {id: $userId})-[r:HAS_IN_CART]->(p:Product)
+      RETURN p.id AS productId, p.name AS name, r.quantity AS quantity
+    weight: 10
+    type: read
+    parameters:
+      userId: "random:uuid"
+
+# Weight Distribution Summary:
+# - Read operations:  30 + 50 + 20 + 5 + 10 = 115 (76.7%)
+# - Write operations: 10 + 10 + 15 = 35 (23.3%)
+# Total weight: 150
+
+# Parameter Generator Reference:
+# - random:uuid          - Generates a random UUID string
+# - random:int:min:max   - Generates a random integer between min and max (inclusive)
+# - random:double:min:max - Generates a random double between min and max
+# - random:string:length - Generates a random alphanumeric string of given length
+# - random:long:min:max  - Generates a random long between min and max
+# - random:boolean       - Generates a random true/false value
+# - Literal values       - Any string not starting with "random:" is used as-is
