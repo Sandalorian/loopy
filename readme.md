@@ -288,6 +288,61 @@ docker build -t loopy .
 docker run -e NEO4J_URI=bolt://host.docker.internal:7687 loopy --neo4j.uri=$NEO4J_URI
 ```
 
+## Releasing
+
+Loopy uses GitHub Actions for automated releases. When a version tag is pushed, the release workflow automatically builds the application and publishes distribution packages to GitHub Releases.
+
+### Release Steps
+
+1. **Update the version in `pom.xml`:**
+   ```bash
+   mvn versions:set -DnewVersion=2.1.0
+   mvn versions:commit
+   ```
+
+2. **Update `CHANGELOG.md`** with release notes for the new version
+
+3. **Commit the version changes:**
+   ```bash
+   git add pom.xml CHANGELOG.md
+   git commit -m "Release v2.1.0"
+   ```
+
+4. **Create and push the version tag:**
+   ```bash
+   git tag v2.1.0
+   git push origin main --tags
+   ```
+
+5. **Automated release process:**
+   - GitHub Actions builds the project with Java 21
+   - Creates distribution packages (ZIP and TAR.GZ)
+   - Generates SHA256 checksums for verification
+   - Publishes a GitHub Release with auto-generated release notes
+   - Uploads all artifacts to the release
+
+### Release Artifacts
+
+Each release includes:
+- `loopy-X.Y.Z-dist.zip` - Distribution archive (ZIP format)
+- `loopy-X.Y.Z-dist.tar.gz` - Distribution archive (TAR.GZ format)
+- `checksums-sha256.txt` - SHA256 checksums for verification
+
+Distribution contents:
+```
+loopy-X.Y.Z/
+├── loopy-X.Y.Z.jar          # Executable JAR (run with java -jar)
+├── readme.md                 # Documentation
+├── CHANGELOG.md              # Version history
+├── config.properties         # Default configuration
+├── example-workload.yaml     # Example YAML workload
+└── scripts/
+    ├── loopy-completion.bash # Bash completion
+    ├── loopy-completion.zsh  # Zsh completion
+    ├── loopy.1               # Man page
+    └── install-shell-integration.sh
+```
+
 ## Use Cases
 - Load testing during Neo4j cluster operations
 - Simulating realistic database activity during maintenance windows
