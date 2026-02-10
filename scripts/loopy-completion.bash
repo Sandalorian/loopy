@@ -75,7 +75,7 @@ _loopy() {
                         return 0
                         ;;
                 esac
-                local test_opts="--neo4j-uri -u --username -U --password -P --full-diagnostics --diag --save-report --quick --help -h"
+                local test_opts="--neo4j-uri -u --nodes --username -U --password -P --full-diagnostics --diag --save-report --quick --help -h"
                 COMPREPLY=( $(compgen -W "${test_opts}" -- ${cur}) )
                 return 0
                 ;;

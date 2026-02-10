@@ -82,6 +82,7 @@ _loopy() {
                 test-connection)
                     _arguments \
                         '(-u --neo4j-uri)'{-u,--neo4j-uri}'[Neo4j connection URI]:uri:' \
+                        '--nodes[Comma-separated list of cluster node URIs]:nodes:' \
                         '(-U --username)'{-U,--username}'[Neo4j username]:username:' \
                         '(-P --password)'{-P,--password}'[Neo4j password]:password:' \
                         '--full-diagnostics[Run comprehensive diagnostics]' \

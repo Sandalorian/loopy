@@ -294,7 +294,7 @@ loopy config edit --config config.properties
 
 ### 4.4 `test-connection` - Connection Testing & Diagnostics
 
-**Purpose:** Test Neo4j connectivity with comprehensive diagnostics.
+**Purpose:** Test Neo4j connectivity (single node or cluster) with comprehensive diagnostics.
 
 **Usage:**
 ```bash
@@ -302,23 +302,46 @@ loopy test-connection [OPTIONS]
 ```
 
 **Options:**
-- `--neo4j-uri`, `-u` - Neo4j URI to test
+- `--neo4j-uri`, `-u` - Neo4j URI to test (supports bolt://, neo4j://, bolt+s://, neo4j+s://)
+- `--nodes` - Comma-separated list of cluster nodes to test individually
 - `--username`, `-U` - Username
 - `--password`, `-P` - Password
 - `--quick` - Quick connectivity test only
 - `--full-diagnostics`, `--diag` - Comprehensive diagnostics
 - `--save-report` - Save diagnostic report to file
 
+**Cluster Support:**
+The command automatically detects cluster URIs (neo4j://) and provides cluster-specific testing:
+- Tests routing capabilities
+- Validates cluster connectivity
+- Reports on member availability
+
+**URI Schemes:**
+- `bolt://` - Direct connection to single instance
+- `bolt+s://` - Direct connection with TLS
+- `neo4j://` - Cluster routing connection (auto-detected)
+- `neo4j+s://` - Cluster routing with TLS (auto-detected)
+
 **Examples:**
 ```bash
-# Quick connectivity test
+# Quick connectivity test (single node)
 loopy test-connection --quick
 
 # Basic test with details
 loopy test-connection --neo4j-uri bolt://prod:7687 --username neo4j
 
+# Test cluster with routing URI (auto-detected)
+loopy test-connection --neo4j-uri neo4j://cluster.example.com:7687
+
+# Test specific cluster nodes individually
+loopy test-connection --nodes bolt://node1:7687,bolt://node2:7687,bolt://node3:7687
+
 # Full diagnostics with report
 loopy test-connection --full-diagnostics --save-report diagnostics.txt
+
+# Full diagnostics on cluster nodes (creates separate reports)
+loopy test-connection --nodes bolt://node1:7687,bolt://node2:7687 \
+                      --full-diagnostics --save-report cluster-diag.txt
 ```
 
 **Test Levels:**
@@ -346,7 +369,8 @@ loopy test-connection --full-diagnostics --save-report diagnostics.txt
 1. Run a quick test: `loopy test-connection --quick`
 2. Run full diagnostics: `loopy test-connection --full-diagnostics`
 3. Save a report: `loopy test-connection --diag --save-report report.txt`
-4. Review recommendations in the report
+4. Test multiple nodes: `loopy test-connection --nodes bolt://node1:7687,bolt://node2:7687`
+5. Review recommendations in the report
 
 ---
 
@@ -575,54 +599,7 @@ loopy schedule --cron "0 */2 * * *" --daemon
 
 ---
 
-### 4.10 `cluster` - Cluster Management
-
-**Purpose:** Manage Neo4j cluster connections and load balancing.
-
-**Usage:**
-```bash
-loopy cluster [OPTIONS]
-```
-
-**Options:**
-- `--nodes` - Comma-separated list of Neo4j node URIs (required)
-- `--username`, `-U` - Neo4j username
-- `--password`, `-P` - Neo4j password
-- `--strategy`, `-s` - Load balancing strategy
-- `--health-check` - Perform health check
-- `--status` - Show cluster status
-- `--test-connections` - Test connections to all nodes
-
-**Load Balancing Strategies:**
-- `ROUND_ROBIN` - Distribute evenly across nodes
-- `HEALTH_BASED` - Prefer healthy nodes with good response times
-- `RANDOM` - Random selection
-- `WEIGHTED` - Weighted distribution based on capacity
-
-**Examples:**
-```bash
-# Health check on cluster
-loopy cluster --nodes bolt://node1:7687,bolt://node2:7687,bolt://node3:7687 \
-              --health-check
-
-# Show cluster status with specific strategy
-loopy cluster --nodes bolt://node1:7687,bolt://node2:7687 \
-              --strategy HEALTH_BASED --status
-
-# Test all connections
-loopy cluster --nodes bolt://node1:7687,bolt://node2:7687 \
-              --test-connections
-```
-
-**Training Exercise:**
-1. Set up multiple Neo4j instances (or use same instance with different ports)
-2. Check cluster health
-3. Compare different load balancing strategies
-4. Run a distributed load test
-
----
-
-### 4.11 `security` - Security Management
+### 4.10 `security` - Security Management
 
 **Purpose:** Manage security credentials and audit logs.
 

@@ -59,7 +59,7 @@ Validate configuration file without running the test. Checks configuration synta
 Run predefined benchmark scenarios. Execute standardized performance tests for comparison.
 .TP
 .B test\-connection
-Test Neo4j connectivity and perform diagnostics. Verify database connectivity and permissions.
+Test Neo4j connectivity (single node or cluster) and perform diagnostics. Verify database connectivity, permissions, and cluster member availability. Automatically detects cluster URIs (neo4j://) and supports testing multiple nodes with the --nodes option.
 .TP
 .B setup
 Interactive setup wizard for guided configuration creation. Step-by-step configuration generation.
