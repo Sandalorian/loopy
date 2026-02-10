@@ -35,7 +35,6 @@ import java.util.regex.Pattern;
         com.neo4j.loopy.commands.TuneCommand.class,
         com.neo4j.loopy.commands.ReportCommand.class,
         com.neo4j.loopy.commands.ScheduleCommand.class,
-        com.neo4j.loopy.commands.ClusterCommand.class,
         com.neo4j.loopy.commands.SecurityCommand.class
     }
 )
