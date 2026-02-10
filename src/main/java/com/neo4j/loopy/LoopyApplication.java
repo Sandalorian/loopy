@@ -1,5 +1,7 @@
 package com.neo4j.loopy;
 
+import com.neo4j.loopy.config.CypherWorkloadConfig;
+import com.neo4j.loopy.config.CypherWorkloadValidator;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -106,16 +108,58 @@ public class LoopyApplication implements Callable<Integer> {
     @Option(names = {"--verbose", "-v"}, description = "Verbose mode - detailed output")
     private boolean verbose = false;
     
+    // YAML-based Cypher workload options
+    @Option(names = {"--cypher-file", "-f"}, 
+            description = "Path to YAML workload file containing Cypher queries")
+    private String cypherFile;
+    
+    @Option(names = {"--verbose-stats"}, 
+            description = "Enable per-query statistics (default: aggregated only)")
+    private boolean verboseStats = false;
+    
+    @Option(names = {"--dry-run"}, 
+            description = "Validate YAML and test connection without executing workload")
+    private boolean dryRun = false;
+    
+    @Option(names = {"--fail-fast"}, 
+            description = "Abort on first query failure (default: continue with next query)")
+    private boolean failFast = false;
+    
+    @Option(names = {"--stats-format"}, 
+            description = "Statistics output format: summary, detailed, json",
+            defaultValue = "summary")
+    private String statsFormat;
+    
     // Application state
     private LoopyConfig config;
+    private CypherWorkloadConfig workloadConfig;
     private LoopyStats stats;
     private ExecutorService executorService;
     private ScheduledExecutorService reportingService;
-    private List<LoopyWorker> workers;
+    private List<Worker> workers;
     private volatile boolean running = false;
     
     private void validateParameters() {
         List<String> errors = new ArrayList<>();
+        
+        // Validate mutual exclusivity: --cypher-file vs --node-labels/--relationship-types
+        if (cypherFile != null) {
+            if (nodeLabels != null) {
+                errors.add("--cypher-file is mutually exclusive with --node-labels");
+            }
+            if (relationshipTypes != null) {
+                errors.add("--cypher-file is mutually exclusive with --relationship-types");
+            }
+            // Warn about ignored --write-ratio when using --cypher-file
+            if (writeRatio != null && writeRatio != 0.7) {
+                System.out.println("\u001B[33mWarning: --write-ratio is ignored when using --cypher-file (queries have explicit types)\u001B[0m");
+            }
+        }
+        
+        // Validate stats-format
+        if (statsFormat != null && !statsFormat.matches("^(summary|detailed|json)$")) {
+            errors.add("Invalid stats-format: " + statsFormat + ". Expected: summary, detailed, or json");
+        }
         
         // Validate threads
         if (threads != null && (threads < 1 || threads > 100)) {
@@ -161,6 +205,51 @@ public class LoopyApplication implements Callable<Integer> {
         }
     }
     
+    /**
+     * Validate and load YAML workload configuration
+     */
+    private boolean validateAndLoadWorkload() {
+        if (cypherFile == null) {
+            return true; // No workload file specified, use default mode
+        }
+        
+        if (!quiet) {
+            System.out.println("\u001B[36mValidating YAML workload file: " + cypherFile + "\u001B[0m");
+        }
+        
+        CypherWorkloadValidator validator = new CypherWorkloadValidator();
+        CypherWorkloadValidator.ValidationResult result = validator.validate(
+            cypherFile, neo4jUri, username, password
+        );
+        
+        // Print warnings
+        if (!result.getWarnings().isEmpty() && !quiet) {
+            System.out.println("\u001B[33mWarnings:\u001B[0m");
+            result.printWarnings();
+        }
+        
+        // Check for errors
+        if (!result.isValid()) {
+            System.err.println("\u001B[31mWorkload validation failed:\u001B[0m");
+            result.printErrors();
+            return false;
+        }
+        
+        this.workloadConfig = result.getConfig();
+        
+        if (!quiet) {
+            System.out.println("\u001B[32mWorkload validated successfully\u001B[0m");
+            if (verbose) {
+                System.out.println("  Name: " + workloadConfig.getName());
+                System.out.println("  Description: " + workloadConfig.getDescription());
+                System.out.println("  Queries: " + workloadConfig.getQueries().size());
+                System.out.println("  Total Weight: " + workloadConfig.getTotalWeight());
+            }
+        }
+        
+        return true;
+    }
+    
     private boolean isValidNeo4jUri(String uri) {
         return uri.matches("^(bolt|neo4j|bolt\\+s|neo4j\\+s)://[^\\s]+");
     }
@@ -173,6 +262,19 @@ public class LoopyApplication implements Callable<Integer> {
             
             // Validate parameters first
             validateParameters();
+            
+            // Validate and load YAML workload if specified
+            if (!validateAndLoadWorkload()) {
+                return 1;
+            }
+            
+            // Handle dry-run mode
+            if (dryRun) {
+                if (!quiet) {
+                    System.out.println("\u001B[32mDry run completed successfully. No queries were executed.\u001B[0m");
+                }
+                return 0;
+            }
             
             if (verbose) {
                 System.out.println("\u001B[36mVerbose mode enabled\u001B[0m");
