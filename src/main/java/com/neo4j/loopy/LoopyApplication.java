@@ -346,6 +346,20 @@ public class LoopyApplication implements Callable<Integer> {
         config.overrideFromArgs(args.toArray(new String[0]));
     }
     
+    /**
+     * Create a worker based on the current configuration mode.
+     * Uses factory pattern to select appropriate worker implementation.
+     */
+    private Worker createWorker() {
+        if (workloadConfig != null) {
+            // YAML-based Cypher workload mode
+            return new CypherFileWorker(config, stats, workloadConfig, failFast);
+        } else {
+            // Default programmatic data generation mode
+            return new LoopyWorker(config, stats);
+        }
+    }
+    
     public void start() {
         if (!quiet) {
             System.out.println("\u001B[36mStarting Loopy load generator...\u001B[0m");
@@ -353,13 +367,30 @@ public class LoopyApplication implements Callable<Integer> {
             System.out.println("  Neo4j URI: " + config.getNeo4jUri());
             System.out.println("  Threads: " + config.getThreads());
             System.out.println("  Duration: " + config.getDurationSeconds() + " seconds");
-            System.out.println("  Write Ratio: " + (config.getWriteRatio() * 100) + "%");
+            
+            // Show appropriate mode information
+            if (workloadConfig != null) {
+                System.out.println("  Mode: YAML Cypher Workload");
+                System.out.println("  Workload: " + workloadConfig.getName());
+                System.out.println("  Queries: " + workloadConfig.getQueries().size());
+                if (verbose) {
+                    System.out.println("  Description: " + workloadConfig.getDescription());
+                    System.out.println("  Verbose Stats: " + verboseStats);
+                    System.out.println("  Fail Fast: " + failFast);
+                    System.out.println("  Stats Format: " + statsFormat);
+                }
+            } else {
+                System.out.println("  Mode: Programmatic Data Generation");
+                System.out.println("  Write Ratio: " + (config.getWriteRatio() * 100) + "%");
+                if (verbose) {
+                    System.out.println("  Node Labels: " + config.getNodeLabels());
+                    System.out.println("  Relationship Types: " + config.getRelationshipTypes());
+                    System.out.println("  Batch Size: " + config.getBatchSize());
+                    System.out.println("  Property Size: " + config.getPropertySizeBytes() + " bytes");
+                }
+            }
             
             if (verbose) {
-                System.out.println("  Node Labels: " + config.getNodeLabels());
-                System.out.println("  Relationship Types: " + config.getRelationshipTypes());
-                System.out.println("  Batch Size: " + config.getBatchSize());
-                System.out.println("  Property Size: " + config.getPropertySizeBytes() + " bytes");
                 System.out.println("  Report Interval: " + config.getReportIntervalSeconds() + " seconds");
                 System.out.println("  CSV Logging: " + (config.isCsvLoggingEnabled() ? "Enabled" : "Disabled"));
             }
@@ -368,9 +399,13 @@ public class LoopyApplication implements Callable<Integer> {
         
         running = true;
         
-        // Start worker threads
+        // Configure stats based on CLI options
+        stats.setVerboseStats(verboseStats);
+        stats.setStatsFormat(statsFormat);
+        
+        // Start worker threads using factory pattern
         for (int i = 0; i < config.getThreads(); i++) {
-            LoopyWorker worker = new LoopyWorker(config, stats);
+            Worker worker = createWorker();
             workers.add(worker);
             executorService.submit(worker);
         }
@@ -404,8 +439,8 @@ public class LoopyApplication implements Callable<Integer> {
         }
         running = false;
         
-        // Stop workers
-        workers.forEach(LoopyWorker::stop);
+        // Stop workers (using Worker interface)
+        workers.forEach(Worker::stop);
         
         // Shutdown thread pools
         executorService.shutdown();
@@ -426,10 +461,7 @@ public class LoopyApplication implements Callable<Integer> {
         
         // Print final statistics
         if (!quiet) {
-            System.out.println("\n\u001B[36mFinal Statistics:\u001B[0m");
-            stats.printStats();
-            System.out.println("Total Operations: " + stats.getTotalOperations());
-            System.out.println("Total Errors: " + stats.getErrors());
+            stats.printFinalStats();
         }
         
         // Close CSV writer if enabled
