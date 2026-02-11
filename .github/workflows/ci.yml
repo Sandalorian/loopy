@@ -42,3 +42,77 @@ jobs:
             target/loopy-*-dist.tar.gz
           if-no-files-found: error
           retention-days: 7
+
+  test-wrapper-scripts:
+    name: Test Wrapper Scripts (${{ matrix.os }})
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      
+      - name: Download distribution artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: loopy-dist
+          path: dist/
+      
+      - name: Extract distribution (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd dist
+          tar -xzf loopy-*-dist.tar.gz
+          echo "LOOPY_DIR=$(ls -d loopy-*/)" >> $GITHUB_ENV
+      
+      - name: Extract distribution (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cd dist
+          Expand-Archive -Path loopy-*-dist.zip -DestinationPath .
+          $loopyDir = (Get-ChildItem -Directory -Name loopy-*)
+          echo "LOOPY_DIR=$loopyDir" >> $env:GITHUB_ENV
+      
+      - name: Test wrapper script (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd "dist/${{ env.LOOPY_DIR }}"
+          chmod +x bin/loopy
+          echo "Testing --version..."
+          ./bin/loopy --version
+          echo "Testing --help..."
+          ./bin/loopy --help
+          echo "✅ Unix wrapper script tests passed!"
+      
+      - name: Test wrapper script (Windows CMD)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          cd "dist\${{ env.LOOPY_DIR }}"
+          echo Testing --version...
+          bin\loopy.bat --version
+          echo Testing --help...
+          bin\loopy.bat --help
+          echo Windows CMD wrapper script tests passed!
+      
+      - name: Test wrapper script (Windows PowerShell)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cd "dist/${{ env.LOOPY_DIR }}"
+          Write-Host "Testing --version..."
+          ./bin/loopy.ps1 --version
+          Write-Host "Testing --help..."
+          ./bin/loopy.ps1 --help
+          Write-Host "✅ Windows PowerShell wrapper script tests passed!"
