@@ -103,8 +103,9 @@ main() {
     SCRIPT_DIR=$(resolve_path "$0")
     
     # Determine LOOPY_HOME (allow override via environment variable)
+    # Script is at distribution root, so LOOPY_HOME is the script's directory
     if [ -z "$LOOPY_HOME" ]; then
-        LOOPY_HOME=$(dirname "$SCRIPT_DIR")
+        LOOPY_HOME="$SCRIPT_DIR"
     fi
     
     # Validate LOOPY_HOME structure

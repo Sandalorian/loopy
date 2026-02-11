@@ -9,10 +9,11 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Determine LOOPY_HOME (allow override via environment variable)
+# Script is at distribution root, so LOOPY_HOME is the script's directory
 if ($env:LOOPY_HOME) {
     $LoopyHome = $env:LOOPY_HOME
 } else {
-    $LoopyHome = Split-Path -Parent $ScriptDir
+    $LoopyHome = $ScriptDir
 }
 
 # Validate LOOPY_HOME structure

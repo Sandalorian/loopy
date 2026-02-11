@@ -10,8 +10,9 @@ set "SCRIPT_DIR=%~dp0"
 set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 
 REM Determine LOOPY_HOME (allow override via environment variable)
+REM Script is at distribution root, so LOOPY_HOME is the script's directory
 if not defined LOOPY_HOME (
-    for %%i in ("%SCRIPT_DIR%\..") do set "LOOPY_HOME=%%~fi"
+    set "LOOPY_HOME=%SCRIPT_DIR%"
 )
 
 REM Validate LOOPY_HOME structure
