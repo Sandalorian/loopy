@@ -13,8 +13,8 @@
     <includeBaseDirectory>true</includeBaseDirectory>
     <baseDirectory>${project.artifactId}-${project.version}</baseDirectory>
     
-    <!-- Include documentation files from project root -->
     <fileSets>
+        <!-- Include documentation files from project root -->
         <fileSet>
             <directory>${project.basedir}</directory>
             <outputDirectory>/</outputDirectory>
@@ -22,6 +22,15 @@
                 <include>readme.md</include>
                 <include>CHANGELOG.md</include>
                 <include>LICENSE*</include>
+            </includes>
+        </fileSet>
+        
+        <!-- Include installation documentation -->
+        <fileSet>
+            <directory>${project.basedir}/docs</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>INSTALL.md</include>
             </includes>
         </fileSet>
         
@@ -35,7 +44,19 @@
             </includes>
         </fileSet>
         
-        <!-- Include shell scripts and man page -->
+        <!-- Include wrapper scripts in bin/ directory -->
+        <fileSet>
+            <directory>${project.basedir}/bin</directory>
+            <outputDirectory>/bin</outputDirectory>
+            <includes>
+                <include>loopy</include>
+                <include>loopy.bat</include>
+                <include>loopy.ps1</include>
+            </includes>
+            <fileMode>0755</fileMode>
+        </fileSet>
+        
+        <!-- Include shell completion scripts and man page -->
         <fileSet>
             <directory>${project.basedir}/scripts</directory>
             <outputDirectory>/scripts</outputDirectory>
@@ -49,11 +70,12 @@
         </fileSet>
     </fileSets>
     
-    <!-- Include the shaded JAR -->
+    <!-- Include the shaded JAR in lib/ directory -->
     <files>
         <file>
             <source>${project.build.directory}/${project.artifactId}-${project.version}.jar</source>
-            <outputDirectory>/</outputDirectory>
+            <outputDirectory>/lib</outputDirectory>
+            <!-- Keeps original versioned filename: loopy-{version}.jar -->
         </file>
     </files>
     
