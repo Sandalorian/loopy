@@ -1,0 +1,142 @@
+#!/bin/sh
+# Loopy - Neo4j Load Generator
+# Wrapper script for Unix systems (macOS, Linux)
+# https://github.com/Sandalorian/loopy
+
+set -e
+
+# Colors for terminal output (only if terminal supports it)
+if [ -t 1 ] && command -v tput >/dev/null 2>&1; then
+    RED=$(tput setaf 1 2>/dev/null || echo "")
+    GREEN=$(tput setaf 2 2>/dev/null || echo "")
+    YELLOW=$(tput setaf 3 2>/dev/null || echo "")
+    RESET=$(tput sgr0 2>/dev/null || echo "")
+else
+    RED=""
+    GREEN=""
+    YELLOW=""
+    RESET=""
+fi
+
+# Error handling
+error() {
+    echo "${RED}ERROR:${RESET} $1" >&2
+    exit 1
+}
+
+warn() {
+    echo "${YELLOW}WARNING:${RESET} $1" >&2
+}
+
+# Resolve the real path of this script (handles symlinks)
+resolve_path() {
+    local script="$1"
+    
+    # Follow symlinks to find the real script location
+    while [ -L "$script" ]; do
+        local dir=$(dirname "$script")
+        script=$(readlink "$script")
+        # Handle relative symlinks
+        case "$script" in
+            /*) ;;
+            *) script="$dir/$script" ;;
+        esac
+    done
+    
+    # Get the absolute directory path
+    local dir=$(dirname "$script")
+    (cd "$dir" && pwd)
+}
+
+# Find Java executable
+find_java() {
+    if [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+        echo "$JAVA_HOME/bin/java"
+    elif command -v java >/dev/null 2>&1; then
+        command -v java
+    else
+        return 1
+    fi
+}
+
+# Check Java version (requires Java 21+)
+check_java_version() {
+    local java_cmd="$1"
+    local version_output
+    
+    version_output=$("$java_cmd" -version 2>&1 | head -1)
+    
+    # Extract version number - handles both old (1.8.0) and new (21.0.1) formats
+    local version=$(echo "$version_output" | sed -n 's/.*version "\([0-9]*\).*/\1/p')
+    
+    if [ -z "$version" ]; then
+        warn "Could not determine Java version"
+        return 0
+    fi
+    
+    if [ "$version" -lt 21 ]; then
+        error "Java 21 or higher is required. Found: Java $version
+Please install Java 21+ from:
+  - https://adoptium.net/
+  - https://www.oracle.com/java/technologies/downloads/"
+    fi
+}
+
+# Find the Loopy JAR file
+find_loopy_jar() {
+    local lib_dir="$1"
+    local jar_file
+    
+    # Look for loopy-*.jar in lib directory
+    jar_file=$(ls "$lib_dir"/loopy-*.jar 2>/dev/null | head -1)
+    
+    if [ -z "$jar_file" ] || [ ! -f "$jar_file" ]; then
+        return 1
+    fi
+    
+    echo "$jar_file"
+}
+
+# Main execution
+main() {
+    # Resolve script location
+    SCRIPT_DIR=$(resolve_path "$0")
+    
+    # Determine LOOPY_HOME (allow override via environment variable)
+    if [ -z "$LOOPY_HOME" ]; then
+        LOOPY_HOME=$(dirname "$SCRIPT_DIR")
+    fi
+    
+    # Validate LOOPY_HOME structure
+    if [ ! -d "$LOOPY_HOME/lib" ]; then
+        error "Invalid Loopy installation: lib/ directory not found in $LOOPY_HOME"
+    fi
+    
+    # Find Java
+    JAVA_CMD=$(find_java) || error "Java not found. Please install Java 21+ and ensure it's in your PATH.
+You can set JAVA_HOME to specify the Java installation directory.
+
+Install Java from:
+  - https://adoptium.net/
+  - https://www.oracle.com/java/technologies/downloads/"
+    
+    # Verify Java version
+    check_java_version "$JAVA_CMD"
+    
+    # Find Loopy JAR
+    LOOPY_JAR=$(find_loopy_jar "$LOOPY_HOME/lib") || error "Loopy JAR not found in $LOOPY_HOME/lib/
+Expected file matching: loopy-*.jar"
+    
+    # Build JVM options
+    JVM_OPTS=""
+    
+    # Add user-specified JVM options
+    if [ -n "$LOOPY_JAVA_OPTS" ]; then
+        JVM_OPTS="$LOOPY_JAVA_OPTS"
+    fi
+    
+    # Execute Loopy
+    exec "$JAVA_CMD" $JVM_OPTS -jar "$LOOPY_JAR" "$@"
+}
+
+main "$@"
