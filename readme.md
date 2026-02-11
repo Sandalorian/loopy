@@ -1,23 +1,82 @@
 # Loopy
 
-Loopy is a simple Java application that generates load for a Neo4j database by creating and reading nodes, relationships, and properties in a loop. 
+A lightweight load generator for Neo4j databases. Loopy creates realistic database activity by executing read and write operations, helping you test cluster behavior, connection resilience, and performance under load.
 
-The application is designed to keep the database busy while other operations on the DBMS are being performed. For example, load can be applied during a rolling restart of a Neo4j cluster, or a leadership election/ switch.
+## Use Cases
 
-Loopy will output key statistics about the load generation process, including the number of operations performed and the time taken for each operation, and any connectivity issues encountered.
+- **Cluster Operations** - Maintain database activity during rolling restarts or failovers
+- **Leadership Elections** - Validate cluster behavior during leadership switches  
+- **Connection Testing** - Test failover scenarios and connection resilience
+- **Performance Benchmarking** - Measure throughput and response times under load
+- **Maintenance Windows** - Simulate realistic activity during database maintenance
 
-## Features
-- Simple configuration via properties file or command-line arguments
-- Configurable load generation parameters (concurrency, duration, operation ratios)
-- Supports creating nodes, relationships, and properties with realistic data patterns
-- Reads nodes, relationships, and properties to simulate real-world usage
-- Real-time progress reporting with key performance metrics
-- Graceful error handling and connection retry logic
-- Lightweight with minimal dependencies (Neo4j driver only)
+## Requirements
+
+- **Java 21** or later (download from [Adoptium](https://adoptium.net/))
+- **Neo4j database** (local or remote)
+
+## Download
+
+Download the latest release from [GitHub Releases](https://github.com/Sandalorian/loopy/releases):
+
+- `loopy-X.Y.Z-dist.zip` - For Windows/cross-platform
+- `loopy-X.Y.Z-dist.tar.gz` - For macOS/Linux
+
+Extract the archive:
+
+```bash
+# macOS/Linux
+tar -xzf loopy-2.0.0-dist.tar.gz
+cd loopy-2.0.0
+
+# Windows (PowerShell)
+Expand-Archive loopy-2.0.0-dist.zip -DestinationPath .
+cd loopy-2.0.0
+```
+
+### What's Included
+
+```
+loopy-2.0.0/
+├── loopy-2.0.0.jar          # Executable JAR
+├── config.properties         # Default configuration (edit this)
+├── example-workload.yaml     # Example YAML workload
+├── readme.md                 # This documentation
+├── CHANGELOG.md              # Version history
+└── scripts/
+    ├── loopy-completion.bash # Bash shell completion
+    ├── loopy-completion.zsh  # Zsh shell completion
+    ├── loopy.1               # Man page
+    └── install-shell-integration.sh
+```
+
+## Quick Start
+
+### 1. Test Your Connection
+
+```bash
+java -jar loopy-2.0.0.jar test-connection -u bolt://localhost:7687 -U neo4j -P password
+```
+
+### 2. Run a Simple Load Test
+
+Generate load for 60 seconds with 4 threads:
+
+```bash
+java -jar loopy-2.0.0.jar run -u bolt://localhost:7687 -U neo4j -P password -t 4 -d 60
+```
+
+### 3. Run with a Custom Workload
+
+Use YAML-defined Cypher queries for realistic workloads:
+
+```bash
+java -jar loopy-2.0.0.jar run --cypher-file=example-workload.yaml -u bolt://localhost:7687 -U neo4j -P password
+```
 
 ## Configuration
 
-Loopy can be configured through a `config.properties` file or command-line arguments. Edit `src/main/resources/config.properties` or create your own configuration file with these parameters:
+Loopy can be configured via command-line arguments or a properties file. Edit the included `config.properties` file to set your defaults:
 
 ```properties
 # Neo4j Connection
@@ -42,128 +101,124 @@ csv.logging.enabled=false
 csv.logging.file=loopy-stats.csv
 ```
 
+Then run with your configuration:
+
+```bash
+java -jar loopy-2.0.0.jar run --config=config.properties
+```
+
+Command-line arguments override configuration file settings.
+
+## Usage Examples
+
+### Basic Load Generation
+
+```bash
+# 4 threads for 5 minutes (300 seconds)
+java -jar loopy-2.0.0.jar run -t 4 -d 300 -u bolt://localhost:7687 -U neo4j -P password
+
+# 8 threads with 80% write operations
+java -jar loopy-2.0.0.jar run -t 8 -d 600 -w 0.8 -u bolt://localhost:7687 -U neo4j -P password
+
+# Connect to a remote cluster
+java -jar loopy-2.0.0.jar run -t 4 -d 300 -u neo4j://cluster.example.com:7687 -U neo4j -P password
+```
+
+### Custom Data Patterns
+
+```bash
+# Custom node labels and relationship types
+java -jar loopy-2.0.0.jar run -t 4 -d 300 \
+  --node-labels="Customer,Product,Order" \
+  --relationship-types="PURCHASED,REVIEWED,RECOMMENDED" \
+  -u bolt://localhost:7687 -U neo4j -P password
+```
+
+### Enable Logging
+
+```bash
+# CSV output for analysis
+java -jar loopy-2.0.0.jar run -t 4 -d 300 --csv-logging --csv-file=results.csv \
+  -u bolt://localhost:7687 -U neo4j -P password
+
+# Verbose output
+java -jar loopy-2.0.0.jar run -t 4 -d 300 --verbose \
+  -u bolt://localhost:7687 -U neo4j -P password
+
+# JSON statistics format
+java -jar loopy-2.0.0.jar run -t 4 -d 300 --stats-format=json \
+  -u bolt://localhost:7687 -U neo4j -P password
+```
+
 ## Output
 
-Loopy provides real-time monitoring with periodic reports:
+Loopy displays real-time statistics during execution:
 
 ```
-[2025-11-14 10:30:00] Operations: 12,450 | Write/sec: 285 | Read/sec: 122 | Avg Response: 15ms | Errors: 0
-[2025-11-14 10:30:10] Operations: 15,230 | Write/sec: 278 | Read/sec: 118 | Avg Response: 18ms | Errors: 2
+[2026-02-10 10:30:00] Operations: 12,450 | Write/sec: 285 | Read/sec: 122 | Avg Response: 15ms | Errors: 0
+[2026-02-10 10:30:10] Operations: 15,230 | Write/sec: 278 | Read/sec: 118 | Avg Response: 18ms | Errors: 2
 ```
 
-Key metrics include:
+**Metrics reported:**
 - Operations per second (read/write separately)
 - Average response times
-- Error rates and connection issues
+- Error counts and connection issues
 - Total operations completed
 
-## Prerequisites
+## Command Reference
 
-- Java 11 or later
-- Maven 3.6 or later
-- Neo4j database (running locally or remotely)
+### Commands
 
-## Building
+| Command | Description |
+|---------|-------------|
+| `run` | Execute load generation |
+| `test-connection` | Test database connectivity (supports cluster node testing) |
+| `validate` | Validate a YAML workload file |
+| `benchmark` | Run performance benchmarks |
+| `setup` | Interactive setup wizard |
+| `config` | View/edit configuration |
+| `tune` | Get tuning recommendations |
+| `report` | Generate performance reports |
+| `schedule` | Schedule recurring load tests |
+| `security` | Manage credentials |
 
-### Using Maven directly:
-```bash
-mvn clean package
-```
+### Global Options
 
-### Using the build script:
-```bash
-./build.sh
-```
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--neo4j-uri` | `-u` | Neo4j connection URI |
+| `--username` | `-U` | Neo4j username |
+| `--password` | `-P` | Neo4j password |
+| `--config` | `-c` | Configuration file path |
+| `--help` | `-h` | Show help message |
+| `--version` | `-V` | Print version information |
+| `--verbose` | `-v` | Enable verbose output |
 
-### Testing the build:
-```bash
-./test.sh
-```
+### Run Command Options
 
-## Usage
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--threads` | `-t` | Number of worker threads | 4 |
+| `--duration` | `-d` | Test duration in seconds | 300 |
+| `--write-ratio` | `-w` | Write operation ratio (0.0-1.0) | 0.7 |
+| `--batch-size` | `-b` | Batch size for operations | 100 |
+| `--node-labels` | `-n` | Comma-separated node labels | Person,Product,Order |
+| `--relationship-types` | `-r` | Comma-separated relationship types | KNOWS,PURCHASED,CONTAINS |
+| `--property-size` | | Property size in bytes | 1024 |
+| `--report-interval` | | Statistics interval in seconds | 10 |
+| `--csv-logging` | | Enable CSV logging | false |
+| `--csv-file` | | CSV output file path | loopy-stats.csv |
+| `--stats-format` | | Output format: summary, detailed, json | summary |
+| `--cypher-file` | `-f` | Path to YAML workload file | |
+| `--dry-run` | | Validate without executing | false |
+| `--fail-fast` | | Abort on first query failure | false |
+| `--verbose-stats` | | Enable per-query statistics | false |
 
-### Basic usage (default configuration):
-```bash
-java -jar target/loopy-1.0.0.jar
-```
+## YAML Workloads
 
-### Show help and all available options:
-```bash
-java -jar target/loopy-1.0.0.jar --help
-```
+For realistic application simulation, define custom Cypher queries in a YAML file. This provides fine-grained control over query types, frequencies, and parameters.
 
-### With short options:
-```bash
-java -jar target/loopy-1.0.0.jar -t 8 -d 600 -u bolt://remote:7687 -U neo4j -P mypassword
-```
-
-### With long options:
-```bash
-java -jar target/loopy-1.0.0.jar --threads=8 --duration=600 --neo4j-uri=bolt://remote:7687
-```
-
-### Mixed short and long options:
-```bash
-java -jar target/loopy-1.0.0.jar -t 4 --duration=300 --write-ratio=0.8 -n "Person,Product"
-```
-
-### With custom configuration file:
-```bash
-java -jar target/loopy-1.0.0.jar --config=custom-config.properties --threads=16
-```
-
-### Enable CSV logging:
-```bash
-java -jar target/loopy-1.0.0.jar --csv-logging --csv-file=my-stats.csv
-```
-
-### All available CLI options:
-```
-  -b, --batch-size           Batch size for operations
-  -c, --config               Configuration file path  
-      --csv-file             CSV output file path
-      --csv-logging          Enable CSV logging
-  -d, --duration             Test duration in seconds
-      --dry-run              Validate YAML and test connection without executing
-  -f, --cypher-file          Path to YAML workload file containing Cypher queries
-      --fail-fast            Abort on first query failure
-  -h, --help                 Show help message and exit
-  -n, --node-labels          Comma-separated node labels
-  -P, --password             Neo4j password
-      --property-size        Property size in bytes
-  -r, --relationship-types   Comma-separated relationship types
-      --report-interval      Statistics reporting interval in seconds
-      --stats-format         Statistics output format: summary, detailed, json
-  -t, --threads              Number of worker threads
-  -u, --neo4j-uri           Neo4j connection URI
-  -U, --username             Neo4j username
-  -v, --verbose              Verbose mode - detailed output
-      --verbose-stats        Enable per-query statistics
-  -V, --version              Print version information and exit
-  -w, --write-ratio          Write operation ratio (0.0-1.0)
-```
-
-## YAML-Based Cypher Workload
-
-Loopy supports executing custom Cypher queries defined in a YAML file, providing an alternative to programmatic data generation. This allows you to simulate realistic application workloads with weighted query selection.
-
-### Basic Usage
-
-```bash
-# Run with a YAML workload file
-java -jar target/loopy-1.0.0.jar --cypher-file=workload.yaml -t 8 -d 300
-
-# Validate workload without executing
-java -jar target/loopy-1.0.0.jar --cypher-file=workload.yaml --dry-run
-
-# Enable per-query statistics
-java -jar target/loopy-1.0.0.jar --cypher-file=workload.yaml --verbose-stats
-
-# Output statistics in JSON format
-java -jar target/loopy-1.0.0.jar --cypher-file=workload.yaml --stats-format=json
-```
-
-### YAML Workload Format
+### Example Workload
 
 ```yaml
 name: "E-commerce Workload"
@@ -193,37 +248,49 @@ queries:
       term: "random:string:5"
 ```
 
+### Running YAML Workloads
+
+```bash
+# Run workload
+java -jar loopy-2.0.0.jar run --cypher-file=workload.yaml -t 8 -d 300 \
+  -u bolt://localhost:7687 -U neo4j -P password
+
+# Validate workload before running
+java -jar loopy-2.0.0.jar validate --cypher-file=workload.yaml
+
+# Dry run (validate + test connection, no execution)
+java -jar loopy-2.0.0.jar run --cypher-file=workload.yaml --dry-run \
+  -u bolt://localhost:7687 -U neo4j -P password
+
+# Enable per-query statistics
+java -jar loopy-2.0.0.jar run --cypher-file=workload.yaml --verbose-stats \
+  -u bolt://localhost:7687 -U neo4j -P password
+```
+
 ### Parameter Generators
 
-Loopy supports the following parameter generators:
-
-| Generator | Format | Description | Example |
-|-----------|--------|-------------|---------|
-| UUID | `random:uuid` | Generates a random UUID | `"550e8400-e29b-41d4-a716-446655440000"` |
+| Generator | Format | Description | Example Output |
+|-----------|--------|-------------|----------------|
+| UUID | `random:uuid` | Random UUID | `550e8400-e29b-41d4-a716-446655440000` |
 | Integer | `random:int:min:max` | Random integer in range | `random:int:1:1000` → `42` |
-| Double | `random:double:min:max` | Random decimal in range | `random:double:0:100` → `57.832` |
-| String | `random:string:length` | Random alphanumeric string | `random:string:8` → `"aB3kL9mP"` |
+| Double | `random:double:min:max` | Random decimal in range | `random:double:0:100` → `57.83` |
+| String | `random:string:length` | Random alphanumeric | `random:string:8` → `aB3kL9mP` |
 | Long | `random:long:min:max` | Random long in range | `random:long:0:9999999999` |
 | Boolean | `random:boolean` | Random true/false | `true` or `false` |
 | Literal | `any value` | Used as-is | `"fixed-value"` |
 
-### Weight-Based Query Selection
+### Weight-Based Selection
 
-Queries are selected based on their configured weights. The weight represents the relative probability of selecting that query compared to others.
+Queries are selected randomly based on their weights. Higher weights mean more frequent selection.
 
-**Example:**
-- Query A: weight = 30
-- Query B: weight = 10
-- Query C: weight = 50
-
-Total weight = 90
-- Query A will be selected ~33% of the time (30/90)
-- Query B will be selected ~11% of the time (10/90)
-- Query C will be selected ~56% of the time (50/90)
+**Example:** With weights of 30, 10, and 50 (total: 90):
+- Query A (weight 30): ~33% of executions
+- Query B (weight 10): ~11% of executions  
+- Query C (weight 50): ~56% of executions
 
 ### Per-Query Statistics
 
-When `--verbose-stats` is enabled, Loopy tracks statistics for each individual query:
+With `--verbose-stats`, Loopy tracks individual query performance:
 
 ```
 Per-Query Final Statistics:
@@ -240,111 +307,154 @@ create-order:
   Errors: 2
 ```
 
-### Example Workload File
+### YAML Workload Notes
 
-See `src/main/resources/example-workload.yaml` for a complete example workload file.
+- `--cypher-file` cannot be used with `--node-labels` or `--relationship-types`
+- `--write-ratio` is ignored (query types are defined in YAML)
+- Use `--fail-fast` to stop on the first error
 
-### Validation
+## Shell Completion
 
-Loopy validates the YAML workload file before execution:
-- Verifies file exists and is readable
-- Parses and validates YAML structure
-- Checks all query IDs are unique
-- Verifies all weights are positive
-- Validates parameter generator specifications
-- Optionally validates Cypher syntax against the target database
+Enable tab completion for Loopy commands:
 
-### Notes
-
-- `--cypher-file` is mutually exclusive with `--node-labels` and `--relationship-types`
-- `--write-ratio` is ignored when using `--cypher-file` (queries have explicit types)
-- Use `--fail-fast` to abort on the first query failure (default: continue with next query)
-
-### Backward Compatibility
-
-Loopy maintains backward compatibility with the old argument format:
+### Bash
 ```bash
-# Old format (still supported)
-java -jar target/loopy-1.0.0.jar --duration.seconds=300 --neo4j.uri=bolt://localhost:7687
-
-# New format (recommended)
-java -jar target/loopy-1.0.0.jar --duration=300 --neo4j-uri=bolt://localhost:7687
+source scripts/loopy-completion.bash
 ```
 
-## Docker Usage (Optional)
-
-You can also containerize the application using Docker:
-
-```dockerfile
-FROM openjdk:11-jre-slim
-COPY target/loopy-1.0.0.jar /app/loopy.jar
-WORKDIR /app
-CMD ["java", "-jar", "loopy.jar"]
+### Zsh
+```bash
+source scripts/loopy-completion.zsh
 ```
 
-Build and run:
+To install permanently, run:
 ```bash
-docker build -t loopy .
-docker run -e NEO4J_URI=bolt://host.docker.internal:7687 loopy --neo4j.uri=$NEO4J_URI
+./scripts/install-shell-integration.sh
+```
+
+## Man Page
+
+View the manual page:
+```bash
+man ./scripts/loopy.1
+```
+
+---
+
+# Developer Guide
+
+The following sections are for developers who want to build Loopy from source or contribute to the project.
+
+## Building from Source
+
+### Prerequisites
+
+- Java 21 or later
+- Maven 3.6 or later
+
+### Build Commands
+
+```bash
+# Clone the repository
+git clone https://github.com/Sandalorian/loopy.git
+cd loopy
+
+# Build the application
+mvn clean package
+
+# Run from source
+java -jar target/loopy-2.0.0.jar --help
+```
+
+### Build Scripts
+
+```bash
+# Build with wrapper script
+./build.sh
+
+# Run tests
+./test.sh
+```
+
+## Project Structure
+
+```
+loopy/
+├── src/
+│   ├── main/
+│   │   ├── java/com/neo4j/loopy/    # Source code
+│   │   └── resources/                # Config files & examples
+│   └── assembly/                     # Distribution packaging
+├── scripts/                          # Shell completion & man page
+├── pom.xml                           # Maven configuration
+└── .github/workflows/                # CI/CD pipelines
 ```
 
 ## Releasing
 
-Loopy uses GitHub Actions for automated releases. When a version tag is pushed, the release workflow automatically builds the application and publishes distribution packages to GitHub Releases.
+Loopy uses GitHub Actions for automated releases. When a version tag is pushed, the workflow builds and publishes distribution packages.
 
-### Release Steps
+### Release Process
 
-1. **Update the version in `pom.xml`:**
+1. **Update version:**
    ```bash
    mvn versions:set -DnewVersion=2.1.0
    mvn versions:commit
    ```
 
-2. **Update `CHANGELOG.md`** with release notes for the new version
+2. **Update `CHANGELOG.md`** with release notes
 
-3. **Commit the version changes:**
+3. **Commit and tag:**
    ```bash
    git add pom.xml CHANGELOG.md
    git commit -m "Release v2.1.0"
-   ```
-
-4. **Create and push the version tag:**
-   ```bash
    git tag v2.1.0
    git push origin main --tags
    ```
 
-5. **Automated release process:**
-   - GitHub Actions builds the project with Java 21
-   - Creates distribution packages (ZIP and TAR.GZ)
-   - Generates SHA256 checksums for verification
-   - Publishes a GitHub Release with auto-generated release notes
-   - Uploads all artifacts to the release
+4. **Automated steps:**
+   - GitHub Actions builds with Java 21
+   - Creates distribution packages (ZIP + TAR.GZ)
+   - Generates SHA256 checksums
+   - Publishes GitHub Release with artifacts
 
 ### Release Artifacts
 
 Each release includes:
-- `loopy-X.Y.Z-dist.zip` - Distribution archive (ZIP format)
-- `loopy-X.Y.Z-dist.tar.gz` - Distribution archive (TAR.GZ format)
-- `checksums-sha256.txt` - SHA256 checksums for verification
+- `loopy-X.Y.Z-dist.zip` - Distribution (ZIP)
+- `loopy-X.Y.Z-dist.tar.gz` - Distribution (TAR.GZ)
+- `checksums-sha256.txt` - SHA256 verification
 
-Distribution contents:
-```
-loopy-X.Y.Z/
-├── loopy-X.Y.Z.jar          # Executable JAR (run with java -jar)
-├── readme.md                 # Documentation
-├── CHANGELOG.md              # Version history
-├── config.properties         # Default configuration
-├── example-workload.yaml     # Example YAML workload
-└── scripts/
-    ├── loopy-completion.bash # Bash completion
-    ├── loopy-completion.zsh  # Zsh completion
-    ├── loopy.1               # Man page
-    └── install-shell-integration.sh
+## Docker (Optional)
+
+Build a Docker image:
+
+```dockerfile
+FROM eclipse-temurin:21-jre
+COPY loopy-2.0.0.jar /app/loopy.jar
+COPY config.properties /app/config.properties
+WORKDIR /app
+ENTRYPOINT ["java", "-jar", "loopy.jar"]
 ```
 
-## Use Cases
-- Load testing during Neo4j cluster operations
-- Simulating realistic database activity during maintenance windows
-- Validating cluster behaviors during leadership elections
-- Testing connection resilience and failover scenarios
+Build and run:
+```bash
+docker build -t loopy .
+docker run loopy run -u bolt://host.docker.internal:7687 -U neo4j -P password -t 4 -d 60
+```
+
+## Legacy Argument Support
+
+For backward compatibility, Loopy accepts the old argument format:
+
+```bash
+# Old format (still supported)
+java -jar loopy-2.0.0.jar --duration.seconds=300 --neo4j.uri=bolt://localhost:7687
+
+# New format (recommended)
+java -jar loopy-2.0.0.jar run --duration=300 --neo4j-uri=bolt://localhost:7687
+```
+
+## License
+
+See [LICENSE](LICENSE) for details.
