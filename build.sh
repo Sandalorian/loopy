@@ -20,7 +20,7 @@ if [ $? -eq 0 ]; then
     echo "📥 Install from distribution:"
     echo "   tar -xzf target/loopy-*-dist.tar.gz"
     echo "   cd loopy-*/"
-    echo "   export PATH=\"\$PATH:\$(pwd)/bin\""
+    echo "   export PATH=\"\$PATH:\$(pwd)\""
     echo "   loopy --help"
     echo ""
     echo "📖 See docs/INSTALL.md for full installation instructions"

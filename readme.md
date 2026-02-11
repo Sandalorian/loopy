@@ -26,14 +26,14 @@ Extract the archive and add to your PATH:
 
 ```bash
 # macOS/Linux
-tar -xzf loopy-0.2.0-dist.tar.gz
-cd loopy-0.2.0
-export PATH="$PATH:$(pwd)/bin"
+tar -xzf loopy-0.3.0-dist.tar.gz
+cd loopy-0.3.0
+export PATH="$PATH:$(pwd)"
 
 # Windows (PowerShell)
-Expand-Archive loopy-0.2.0-dist.zip -DestinationPath .
-cd loopy-0.2.0
-# Add bin\ folder to your PATH environment variable
+Expand-Archive loopy-0.3.0-dist.zip -DestinationPath .
+cd loopy-0.3.0
+# Add the loopy-0.3.0 folder to your PATH environment variable
 ```
 
 For detailed installation options, see [INSTALL.md](docs/INSTALL.md).
@@ -41,13 +41,12 @@ For detailed installation options, see [INSTALL.md](docs/INSTALL.md).
 ### What's Included
 
 ```
-loopy-0.2.0/
-├── bin/
-│   ├── loopy                 # Unix wrapper script
-│   ├── loopy.bat             # Windows CMD wrapper
-│   └── loopy.ps1             # Windows PowerShell wrapper
+loopy-0.3.0/
+├── loopy                     # Unix wrapper script
+├── loopy.bat                 # Windows CMD wrapper
+├── loopy.ps1                 # Windows PowerShell wrapper
 ├── lib/
-│   └── loopy-0.2.0.jar       # Executable JAR
+│   └── loopy-0.3.0.jar       # Executable JAR
 ├── config.properties         # Default configuration (edit this)
 ├── example-workload.yaml     # Example YAML workload
 ├── readme.md                 # This documentation

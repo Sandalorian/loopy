@@ -30,10 +30,10 @@ tar -xzf loopy-dist.tar.gz
 cd loopy-*/
 
 # Option 1: Add to PATH (recommended)
-export PATH="$PATH:$(pwd)/bin"
+export PATH="$PATH:$(pwd)"
 
 # Option 2: Create symlink (system-wide)
-sudo ln -s "$(pwd)/bin/loopy" /usr/local/bin/loopy
+sudo ln -s "$(pwd)/loopy" /usr/local/bin/loopy
 
 # Verify installation
 loopy --version
@@ -43,10 +43,10 @@ loopy --version
 
 1. Download `loopy-*-dist.zip` from the [releases page](https://github.com/Sandalorian/loopy/releases)
 2. Extract to your preferred location (e.g., `C:\Program Files\loopy`)
-3. Add the `bin` folder to your PATH:
+3. Add the extracted folder to your PATH:
    - Open **System Properties** → **Environment Variables**
    - Edit the **Path** variable
-   - Add: `C:\Program Files\loopy\bin`
+   - Add: `C:\Program Files\loopy\loopy-0.3.0`
 4. Open a new terminal and verify:
    ```cmd
    loopy --version
@@ -86,10 +86,9 @@ After extraction, the distribution has this structure:
 
 ```
 loopy-{version}/
-├── bin/
-│   ├── loopy           # Unix wrapper script
-│   ├── loopy.bat       # Windows CMD script
-│   └── loopy.ps1       # Windows PowerShell script
+├── loopy                 # Unix wrapper script
+├── loopy.bat             # Windows CMD script
+├── loopy.ps1             # Windows PowerShell script
 ├── lib/
 │   └── loopy-{version}.jar
 ├── scripts/
@@ -112,26 +111,26 @@ loopy-{version}/
 
 **Temporary (current session only):**
 ```bash
-export PATH="$PATH:/path/to/loopy/bin"
+export PATH="$PATH:/path/to/loopy-0.3.0"
 ```
 
 **Permanent (add to shell config):**
 
 For **Bash** (`~/.bashrc` or `~/.bash_profile`):
 ```bash
-echo 'export PATH="$PATH:/path/to/loopy/bin"' >> ~/.bashrc
+echo 'export PATH="$PATH:/path/to/loopy-0.3.0"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
 For **Zsh** (`~/.zshrc`):
 ```bash
-echo 'export PATH="$PATH:/path/to/loopy/bin"' >> ~/.zshrc
+echo 'export PATH="$PATH:/path/to/loopy-0.3.0"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
 **Alternative: Symlink to /usr/local/bin:**
 ```bash
-sudo ln -s /path/to/loopy/bin/loopy /usr/local/bin/loopy
+sudo ln -s /path/to/loopy-0.3.0/loopy /usr/local/bin/loopy
 ```
 
 ### Windows
@@ -140,12 +139,12 @@ sudo ln -s /path/to/loopy/bin/loopy /usr/local/bin/loopy
 1. Press `Win + R`, type `sysdm.cpl`, press Enter
 2. Click **Advanced** tab → **Environment Variables**
 3. Under **User variables**, select **Path** → **Edit**
-4. Click **New** and add: `C:\path\to\loopy\bin`
+4. Click **New** and add: `C:\path\to\loopy-0.3.0`
 5. Click **OK** to save
 
 **Using PowerShell (Administrator):**
 ```powershell
-$loopyPath = "C:\path\to\loopy\bin"
+$loopyPath = "C:\path\to\loopy-0.3.0"
 $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
 [Environment]::SetEnvironmentVariable("Path", "$currentPath;$loopyPath", "User")
 ```
@@ -256,7 +255,7 @@ export JAVA_HOME=/path/to/java
 
 Make the wrapper script executable:
 ```bash
-chmod +x /path/to/loopy/bin/loopy
+chmod +x /path/to/loopy-0.3.0/loopy
 ```
 
 ### "PowerShell execution policy" on Windows
