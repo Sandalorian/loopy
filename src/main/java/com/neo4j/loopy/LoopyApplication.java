@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
     name = "loopy",
     description = "Neo4j load generator for testing database performance",
     mixinStandardHelpOptions = true,
-    version = "0.2.0",
+    version = "0.3.0",
     subcommands = {
         com.neo4j.loopy.commands.RunCommand.class,
         com.neo4j.loopy.commands.ValidateCommand.class,
