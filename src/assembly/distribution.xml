@@ -44,10 +44,10 @@
             </includes>
         </fileSet>
         
-        <!-- Include wrapper scripts in bin/ directory -->
+        <!-- Include wrapper scripts at distribution root -->
         <fileSet>
             <directory>${project.basedir}/bin</directory>
-            <outputDirectory>/bin</outputDirectory>
+            <outputDirectory>/</outputDirectory>
             <includes>
                 <include>loopy</include>
                 <include>loopy.bat</include>
