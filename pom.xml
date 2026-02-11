@@ -7,7 +7,7 @@
     
     <groupId>com.neo4j</groupId>
     <artifactId>loopy</artifactId>
-    <version>3.0.0</version>
+    <version>0.1.0</version>
     <packaging>jar</packaging>
     
     <name>Loopy</name>

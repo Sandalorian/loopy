@@ -5,58 +5,23 @@ All notable changes to Loopy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0] - 2026-02-11
+## [0.1.0] - 2026-02-11
 
-### BREAKING CHANGES
-- **Removed `tune` command entirely** - Performance tuning functionality removed
-- **Removed `schedule` command entirely** - Enterprise scheduling functionality removed
-- **Removed `PerformanceAnalyzer` class** - Load profiles no longer available
-- **Removed `ScheduledRunner` class** - Cron-based scheduling no longer available
+### Initial Development Release
 
-### Removed
-- `tune` command and all associated options (--profile, --auto-tune, --show-profiles)
-- `schedule` command and all associated options (--cron, --delay, --max-runs, --daemon, --list)
-- Load profile presets (light, medium, heavy, stress)
-- Enterprise scheduling capabilities
-- `optimization` package (PerformanceAnalyzer, OptimizationRecommendations)
-- `enterprise` package (ScheduledRunner)
+This is the first public development release of Loopy. The API and features are subject to change as the project evolves.
 
-### Migration Guide
-- **tune command:** Users who relied on `loopy tune --show-profiles` should manually configure thread count, batch size, and duration based on their system resources
-- **schedule command:** Users requiring scheduled load tests should use external scheduling tools (cron, systemd timers, Task Scheduler) to invoke `loopy run`
-
-## [2.0.0] - 2026-02-10
-
-### BREAKING CHANGES
-- **Removed `cluster` command entirely** - Cluster testing is now integrated into `test-connection`
-- **Removed `ClusterSupport` class** - Custom load balancing strategies no longer available
-- **Removed load balancing strategies** - ROUND_ROBIN, HEALTH_BASED, RANDOM, WEIGHTED options removed
-
-### Added
-- `test-connection` now automatically detects cluster URIs (`neo4j://` scheme)
-- `test-connection --nodes` option to test multiple cluster nodes explicitly
-- Automatic cluster member testing with summary reporting
-- Better integration with Neo4j Driver's built-in cluster routing
-
-### Changed
-- `test-connection` command description updated to mention cluster support
-- Simplified CLI interface by consolidating connection testing into single command
-- Updated shell completion scripts with new `--nodes` option
-- Updated man page documentation
-
-### Migration Guide
-- Replace `loopy cluster --nodes X,Y,Z --test-connections` with `loopy test-connection --nodes X,Y,Z`
-- Replace `loopy cluster --nodes neo4j://cluster:7687 --status` with `loopy test-connection --neo4j-uri neo4j://cluster:7687`
-- Remove any usage of `--strategy` option - Neo4j Driver handles routing automatically
-
-## [1.0.0] - 2026-01-15
-
-### Added
-- Initial release of Loopy load generator
-- YAML-based Cypher workload support
-- Programmatic data generation mode
-- Commands: run, validate, benchmark, test-connection, setup, config, tune, report, schedule, cluster, security
+### Features
+- YAML-based Cypher workload support with weighted query selection
+- Programmatic data generation mode with configurable node labels and relationship types
+- Parameter generators: UUID, integer, double, string, long, boolean
+- Commands: `run`, `validate`, `benchmark`, `test-connection`, `setup`, `config`, `report`, `security`
+- Cluster-aware connection testing (automatic detection of `neo4j://` scheme)
 - Shell completion for bash and zsh
 - Man page documentation
-- CSV logging and reporting
-- Multiple load profiles (light, medium, heavy, stress)
+- CSV logging and JSON statistics output
+- Real-time performance metrics during execution
+
+### Notes
+- This is a pre-1.0 release; breaking changes may occur between minor versions
+- Feedback and contributions welcome

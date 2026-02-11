@@ -1,7 +1,7 @@
 # Loopy Training Guide
 ## Comprehensive User Documentation for Neo4j Load Testing
 
-**Version:** 3.0.0  
+**Version:** 0.1.0  
 **Last Updated:** February 11, 2026
 
 ---
@@ -63,7 +63,7 @@ Loopy is an enterprise-grade Neo4j load testing tool that generates configurable
 mvn clean package
 
 # Run Loopy
-java -jar target/loopy-1.0.0.jar --help
+java -jar target/loopy-0.1.0.jar --help
 ```
 
 ### Quick Start (3 minutes)
