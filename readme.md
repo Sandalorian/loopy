@@ -22,27 +22,37 @@ Download the latest release from [GitHub Releases](https://github.com/Sandaloria
 - `loopy-X.Y.Z-dist.zip` - For Windows/cross-platform
 - `loopy-X.Y.Z-dist.tar.gz` - For macOS/Linux
 
-Extract the archive:
+Extract the archive and add to your PATH:
 
 ```bash
 # macOS/Linux
-tar -xzf loopy-0.1.0-dist.tar.gz
-cd loopy-0.1.0
+tar -xzf loopy-0.2.0-dist.tar.gz
+cd loopy-0.2.0
+export PATH="$PATH:$(pwd)/bin"
 
 # Windows (PowerShell)
-Expand-Archive loopy-0.1.0-dist.zip -DestinationPath .
-cd loopy-0.1.0
+Expand-Archive loopy-0.2.0-dist.zip -DestinationPath .
+cd loopy-0.2.0
+# Add bin\ folder to your PATH environment variable
 ```
+
+For detailed installation options, see [INSTALL.md](docs/INSTALL.md).
 
 ### What's Included
 
 ```
-loopy-0.1.0/
-├── loopy-0.1.0.jar          # Executable JAR
+loopy-0.2.0/
+├── bin/
+│   ├── loopy                 # Unix wrapper script
+│   ├── loopy.bat             # Windows CMD wrapper
+│   └── loopy.ps1             # Windows PowerShell wrapper
+├── lib/
+│   └── loopy-0.2.0.jar       # Executable JAR
 ├── config.properties         # Default configuration (edit this)
 ├── example-workload.yaml     # Example YAML workload
 ├── readme.md                 # This documentation
 ├── CHANGELOG.md              # Version history
+├── INSTALL.md                # Installation guide
 └── scripts/
     ├── loopy-completion.bash # Bash shell completion
     ├── loopy-completion.zsh  # Zsh shell completion
@@ -55,7 +65,7 @@ loopy-0.1.0/
 ### 1. Test Your Connection
 
 ```bash
-java -jar loopy-0.1.0.jar test-connection -u bolt://localhost:7687 -U neo4j -P password
+loopy test-connection -u bolt://localhost:7687 -U neo4j -P password
 ```
 
 ### 2. Run a Simple Load Test
@@ -63,7 +73,7 @@ java -jar loopy-0.1.0.jar test-connection -u bolt://localhost:7687 -U neo4j -P p
 Generate load for 60 seconds with 4 threads:
 
 ```bash
-java -jar loopy-0.1.0.jar run -u bolt://localhost:7687 -U neo4j -P password -t 4 -d 60
+loopy run -u bolt://localhost:7687 -U neo4j -P password -t 4 -d 60
 ```
 
 ### 3. Run with a Custom Workload
@@ -71,7 +81,7 @@ java -jar loopy-0.1.0.jar run -u bolt://localhost:7687 -U neo4j -P password -t 4
 Use YAML-defined Cypher queries for realistic workloads:
 
 ```bash
-java -jar loopy-0.1.0.jar run --cypher-file=example-workload.yaml -u bolt://localhost:7687 -U neo4j -P password
+loopy run --cypher-file=example-workload.yaml -u bolt://localhost:7687 -U neo4j -P password
 ```
 
 ## Configuration
@@ -104,7 +114,7 @@ csv.logging.file=loopy-stats.csv
 Then run with your configuration:
 
 ```bash
-java -jar loopy-0.1.0.jar run --config=config.properties
+loopy run --config=config.properties
 ```
 
 Command-line arguments override configuration file settings.
@@ -115,20 +125,20 @@ Command-line arguments override configuration file settings.
 
 ```bash
 # 4 threads for 5 minutes (300 seconds)
-java -jar loopy-0.1.0.jar run -t 4 -d 300 -u bolt://localhost:7687 -U neo4j -P password
+loopy run -t 4 -d 300 -u bolt://localhost:7687 -U neo4j -P password
 
 # 8 threads with 80% write operations
-java -jar loopy-0.1.0.jar run -t 8 -d 600 -w 0.8 -u bolt://localhost:7687 -U neo4j -P password
+loopy run -t 8 -d 600 -w 0.8 -u bolt://localhost:7687 -U neo4j -P password
 
 # Connect to a remote cluster
-java -jar loopy-0.1.0.jar run -t 4 -d 300 -u neo4j://cluster.example.com:7687 -U neo4j -P password
+loopy run -t 4 -d 300 -u neo4j://cluster.example.com:7687 -U neo4j -P password
 ```
 
 ### Custom Data Patterns
 
 ```bash
 # Custom node labels and relationship types
-java -jar loopy-0.1.0.jar run -t 4 -d 300 \
+loopy run -t 4 -d 300 \
   --node-labels="Customer,Product,Order" \
   --relationship-types="PURCHASED,REVIEWED,RECOMMENDED" \
   -u bolt://localhost:7687 -U neo4j -P password
@@ -138,15 +148,15 @@ java -jar loopy-0.1.0.jar run -t 4 -d 300 \
 
 ```bash
 # CSV output for analysis
-java -jar loopy-0.1.0.jar run -t 4 -d 300 --csv-logging --csv-file=results.csv \
+loopy run -t 4 -d 300 --csv-logging --csv-file=results.csv \
   -u bolt://localhost:7687 -U neo4j -P password
 
 # Verbose output
-java -jar loopy-0.1.0.jar run -t 4 -d 300 --verbose \
+loopy run -t 4 -d 300 --verbose \
   -u bolt://localhost:7687 -U neo4j -P password
 
 # JSON statistics format
-java -jar loopy-0.1.0.jar run -t 4 -d 300 --stats-format=json \
+loopy run -t 4 -d 300 --stats-format=json \
   -u bolt://localhost:7687 -U neo4j -P password
 ```
 

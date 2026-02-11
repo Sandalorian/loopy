@@ -5,6 +5,28 @@ All notable changes to Loopy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-02-11
+
+### Added
+- **Cross-platform wrapper scripts** - Run `loopy` directly without `java -jar` prefix
+  - `bin/loopy` - Unix shell script for macOS/Linux
+  - `bin/loopy.bat` - Windows CMD batch script
+  - `bin/loopy.ps1` - Windows PowerShell script
+- **Automatic Java detection** with version validation (requires Java 21+)
+- **Environment variable support** - `JAVA_HOME`, `LOOPY_HOME`, `LOOPY_JAVA_OPTS`
+- **Comprehensive installation guide** - [INSTALL.md](docs/INSTALL.md)
+- **Multi-platform CI testing** - Wrapper scripts tested on Ubuntu, macOS, and Windows
+
+### Changed
+- Distribution structure reorganized:
+  - JAR moved to `lib/` directory
+  - Wrapper scripts in `bin/` directory
+  - Documentation references updated to use `loopy` command
+
+### Notes
+- JAR filename retains version string for traceability
+- Wrapper scripts dynamically locate versioned JAR
+
 ## [0.1.0] - 2026-02-11
 
 ### Initial Development Release
