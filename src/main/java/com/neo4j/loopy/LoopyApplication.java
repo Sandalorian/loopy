@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
     name = "loopy",
     description = "Neo4j load generator for testing database performance",
     mixinStandardHelpOptions = true,
-    version = "2.0.0",
+    version = "3.0.0",
     subcommands = {
         com.neo4j.loopy.commands.RunCommand.class,
         com.neo4j.loopy.commands.ValidateCommand.class,
@@ -32,9 +32,7 @@ import java.util.regex.Pattern;
         com.neo4j.loopy.commands.TestConnectionCommand.class,
         com.neo4j.loopy.commands.SetupCommand.class,
         com.neo4j.loopy.commands.ConfigCommand.class,
-        com.neo4j.loopy.commands.TuneCommand.class,
         com.neo4j.loopy.commands.ReportCommand.class,
-        com.neo4j.loopy.commands.ScheduleCommand.class,
         com.neo4j.loopy.commands.SecurityCommand.class
     }
 )

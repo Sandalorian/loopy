@@ -1,8 +1,8 @@
 # Loopy Training Guide
 ## Comprehensive User Documentation for Neo4j Load Testing
 
-**Version:** 1.0.0  
-**Last Updated:** February 6, 2026
+**Version:** 3.0.0  
+**Last Updated:** February 11, 2026
 
 ---
 
@@ -27,9 +27,8 @@ Loopy is an enterprise-grade Neo4j load testing tool that generates configurable
 
 - **Flexible load patterns** - Configure threads, duration, and operation types
 - **Interactive setup** - Guided configuration creation
-- **Performance optimization** - Auto-tuning and load profiles
 - **Advanced reporting** - HTML, Markdown, and CSV outputs
-- **Enterprise features** - Scheduling, clustering, and security
+- **Security features** - Credential management and audit logging
 - **Shell integration** - Autocompletion and man pages
 
 ### Architecture Overview
@@ -38,9 +37,9 @@ Loopy is an enterprise-grade Neo4j load testing tool that generates configurable
 ┌─────────────────────────────────────────────────────┐
 │                  Loopy CLI                          │
 ├─────────────────────────────────────────────────────┤
-│  Commands: run | setup | config | tune | report    │
+│  Commands: run | setup | config | report           │
 │            test-connection | benchmark | validate   │
-│            schedule | cluster | security            │
+│            security                                 │
 ├─────────────────────────────────────────────────────┤
 │              Configuration Layer                     │
 │  (config.properties + CLI overrides)                │
@@ -374,60 +373,11 @@ loopy test-connection --nodes bolt://node1:7687,bolt://node2:7687 \
 
 ---
 
-### 4.5 `tune` - Performance Optimization
-
-**Purpose:** Analyze system resources and provide optimization recommendations.
-
-**Usage:**
-```bash
-loopy tune [OPTIONS]
-```
-
-**Options:**
-- `--config`, `-c` - Configuration file to analyze
-- `--profile`, `-p` - Load profile (light, medium, heavy, stress)
-- `--auto-tune` - Apply automatic tuning recommendations
-- `--show-profiles` - Show all available load profiles
-
-**Examples:**
-```bash
-# Show available profiles
-loopy tune --show-profiles
-
-# Show specific profile details
-loopy tune --profile medium
-
-# System analysis
-loopy tune
-
-# Auto-tuning recommendations
-loopy tune --auto-tune
-```
-
-**Load Profiles:**
-
-| Profile | Threads | Batch Size | Duration | Write Ratio | Use Case |
-|---------|---------|------------|----------|-------------|----------|
-| **light** | 2 | 100 | 30s | 30% | Development testing |
-| **medium** | 4 | 500 | 120s | 50% | Staging environments |
-| **heavy** | 8 | 1000 | 300s | 70% | Production testing |
-| **stress** | 16 | 2000 | 600s | 80% | Stress testing |
-
-**Training Exercise:**
-1. View all profiles: `loopy tune --show-profiles`
-2. Check medium profile: `loopy tune --profile medium`
-3. Run system analysis: `loopy tune`
-4. Note CPU cores and memory recommendations
-5. Run auto-tuning: `loopy tune --auto-tune`
-6. Apply recommendations to your config file
-
----
-
-### 4.6 `report` - Generate Reports
+### 4.5 `report` - Generate Reports
 
 **Purpose:** Generate detailed reports from test results.
 
-**Usage:**
+**Usage:****
 ```bash
 loopy report [OPTIONS]
 ```
@@ -497,7 +447,7 @@ loopy report --template detailed --output detailed-report.html
 
 ---
 
-### 4.7 `validate` - Configuration Validation
+### 4.6 `validate` - Configuration Validation
 
 **Purpose:** Validate configuration without running tests.
 
@@ -525,7 +475,7 @@ loopy validate --config staging.properties
 
 ---
 
-### 4.8 `benchmark` - Predefined Benchmarks
+### 4.7 `benchmark` - Predefined Benchmarks
 
 **Purpose:** Run standardized benchmark scenarios.
 
@@ -551,55 +501,7 @@ loopy benchmark --profile heavy
 
 ---
 
-### 4.9 `schedule` - Enterprise Scheduling
-
-**Purpose:** Schedule load tests for enterprise environments.
-
-**Usage:**
-```bash
-loopy schedule [OPTIONS]
-```
-
-**Options:**
-- `--config`, `-c` - Configuration file for scheduled tests
-- `--cron` - Cron expression (minute hour day month dayOfWeek)
-- `--delay` - Delay in seconds for one-time execution
-- `--max-runs` - Maximum number of runs (0 for unlimited)
-- `--daemon` - Run as daemon process
-- `--list` - List active scheduled tasks
-
-**Examples:**
-```bash
-# Schedule one-time test with 60-second delay
-loopy schedule --delay 60 --config test.properties
-
-# Schedule recurring test (every hour)
-loopy schedule --cron "0 * * * *" --config hourly.properties
-
-# Schedule with max runs
-loopy schedule --delay 30 --max-runs 5
-
-# Run as daemon
-loopy schedule --cron "0 */2 * * *" --daemon
-```
-
-**Interactive Mode Commands:**
-- `status` - Show task status
-- `cancel` - Cancel the scheduled task
-- `quit` - Exit (task continues in background)
-
-**Training Exercise:**
-1. Schedule a one-time test:
-   ```bash
-   loopy schedule --delay 30 --config dev-config.properties
-   ```
-2. Monitor the execution in interactive mode
-3. Check the task status
-4. Let it complete and review results
-
----
-
-### 4.10 `security` - Security Management
+### 4.8 `security` - Security Management
 
 **Purpose:** Manage security credentials and audit logs.
 

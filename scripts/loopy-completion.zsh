@@ -13,8 +13,8 @@ _loopy() {
         'test-connection:Test Neo4j connectivity'
         'setup:Interactive setup wizard'
         'config:Configuration management commands'
-        'tune:Performance tuning and optimization'
         'report:Generate detailed reports'
+        'security:Manage credentials and security'
         'help:Show help information'
     )
     
@@ -61,14 +61,6 @@ _loopy() {
                         '1: :_describe "config commands" config_commands' \
                         '(-c --config)'{-c,--config}'[Configuration file]:file:_files' \
                         '(-o --output)'{-o,--output}'[Output file]:file:_files' \
-                        '(-h --help)'{-h,--help}'[Show help]'
-                    ;;
-                tune)
-                    _arguments \
-                        '(-p --profile)'{-p,--profile}'[Load profile]:profile:(light medium heavy stress)' \
-                        '--auto-tune[Apply automatic tuning recommendations]' \
-                        '--show-profiles[Show all available load profiles]' \
-                        '(-c --config)'{-c,--config}'[Configuration file to analyze]:file:_files' \
                         '(-h --help)'{-h,--help}'[Show help]'
                     ;;
                 report)

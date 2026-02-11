@@ -9,7 +9,7 @@ _loopy() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     
     # Main commands
-    commands="run validate benchmark test-connection setup config tune report help"
+    commands="run validate benchmark test-connection setup config report security help"
     
     # Global options
     opts="--help -h --version -V --config -c --neo4j-uri -u --username -U --password -P --threads -t --duration -d --write-ratio -w --batch-size -b --node-labels -n --relationship-types -r --property-size --report-interval --csv-logging --csv-file --quiet -q --verbose -v"
@@ -33,21 +33,6 @@ _loopy() {
                         return 0
                         ;;
                 esac
-                ;;
-            tune)
-                case "${prev}" in
-                    --profile|-p)
-                        COMPREPLY=( $(compgen -W "light medium heavy stress" -- ${cur}) )
-                        return 0
-                        ;;
-                    --config|-c)
-                        _filedir
-                        return 0
-                        ;;
-                esac
-                local tune_opts="--profile -p --auto-tune --show-profiles --config -c --help -h"
-                COMPREPLY=( $(compgen -W "${tune_opts}" -- ${cur}) )
-                return 0
                 ;;
             report)
                 case "${prev}" in

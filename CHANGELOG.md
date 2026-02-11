@@ -5,6 +5,26 @@ All notable changes to Loopy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-02-11
+
+### BREAKING CHANGES
+- **Removed `tune` command entirely** - Performance tuning functionality removed
+- **Removed `schedule` command entirely** - Enterprise scheduling functionality removed
+- **Removed `PerformanceAnalyzer` class** - Load profiles no longer available
+- **Removed `ScheduledRunner` class** - Cron-based scheduling no longer available
+
+### Removed
+- `tune` command and all associated options (--profile, --auto-tune, --show-profiles)
+- `schedule` command and all associated options (--cron, --delay, --max-runs, --daemon, --list)
+- Load profile presets (light, medium, heavy, stress)
+- Enterprise scheduling capabilities
+- `optimization` package (PerformanceAnalyzer, OptimizationRecommendations)
+- `enterprise` package (ScheduledRunner)
+
+### Migration Guide
+- **tune command:** Users who relied on `loopy tune --show-profiles` should manually configure thread count, batch size, and duration based on their system resources
+- **schedule command:** Users requiring scheduled load tests should use external scheduling tools (cron, systemd timers, Task Scheduler) to invoke `loopy run`
+
 ## [2.0.0] - 2026-02-10
 
 ### BREAKING CHANGES

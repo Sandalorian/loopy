@@ -1,4 +1,4 @@
-.TH LOOPY 1 "February 2026" "loopy 1.0.0" "User Commands"
+.TH LOOPY 1 "February 2026" "loopy 3.0.0" "User Commands"
 .SH NAME
 loopy \- Neo4j load generator for testing database performance
 .SH SYNOPSIS
@@ -81,20 +81,6 @@ Display current effective configuration
 Open configuration file in default editor
 .RE
 .TP
-.B tune
-Performance tuning and optimization commands:
-.RS 7
-.TP
-.B \-\-show\-profiles
-Display available load profiles (light, medium, heavy, stress)
-.TP
-.B \-\-profile " " \fIPROFILE\fR
-Show details for specific load profile
-.TP
-.B \-\-auto\-tune
-Analyze system and provide optimization recommendations
-.RE
-.TP
 .B report
 Generate detailed reports from test results:
 .RS 7
@@ -128,10 +114,6 @@ Generate configuration file:
 .B loopy config init
 
 .TP
-Show performance tuning profiles:
-.B loopy tune --show-profiles
-
-.TP
 Generate HTML report:
 .B loopy report --format html --output results.html
 
@@ -154,22 +136,6 @@ node.labels, relationship.types, property.size.bytes
 .TP
 .B Reporting
 report.interval.seconds, csv.logging.enabled, csv.logging.file
-
-.SH LOAD PROFILES
-Loopy includes predefined load profiles for different testing scenarios:
-
-.TP
-.B light
-2 threads, 100 batch size, 30 seconds, 30% writes - for development testing
-.TP
-.B medium  
-4 threads, 500 batch size, 120 seconds, 50% writes - for staging environments
-.TP
-.B heavy
-8 threads, 1000 batch size, 300 seconds, 70% writes - for production testing
-.TP
-.B stress
-16 threads, 2000 batch size, 600 seconds, 80% writes - for stress testing
 
 .SH REPORTING
 Loopy can generate detailed reports in multiple formats:
