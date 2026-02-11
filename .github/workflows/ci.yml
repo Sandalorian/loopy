@@ -88,11 +88,11 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           cd "dist/${{ env.LOOPY_DIR }}"
-          chmod +x bin/loopy
+          chmod +x loopy
           echo "Testing --version..."
-          ./bin/loopy --version
+          ./loopy --version
           echo "Testing --help..."
-          ./bin/loopy --help
+          ./loopy --help
           echo "✅ Unix wrapper script tests passed!"
       
       - name: Test wrapper script (Windows CMD)
@@ -101,9 +101,9 @@ jobs:
         run: |
           cd "dist\${{ env.LOOPY_DIR }}"
           echo Testing --version...
-          bin\loopy.bat --version
+          loopy.bat --version
           echo Testing --help...
-          bin\loopy.bat --help
+          loopy.bat --help
           echo Windows CMD wrapper script tests passed!
       
       - name: Test wrapper script (Windows PowerShell)
@@ -112,7 +112,7 @@ jobs:
         run: |
           cd "dist/${{ env.LOOPY_DIR }}"
           Write-Host "Testing --version..."
-          ./bin/loopy.ps1 --version
+          ./loopy.ps1 --version
           Write-Host "Testing --help..."
-          ./bin/loopy.ps1 --help
+          ./loopy.ps1 --help
           Write-Host "✅ Windows PowerShell wrapper script tests passed!"
