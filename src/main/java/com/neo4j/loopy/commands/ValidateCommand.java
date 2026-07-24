@@ -73,7 +73,7 @@ public class ValidateCommand implements Callable<Integer> {
     }
     
     private boolean isValidNeo4jUri(String uri) {
-        return uri.matches("^(bolt|neo4j|bolt\\+s|neo4j\\+s)://[^\\s]+");
+        return uri.matches("^(bolt|neo4j|bolt\\+s|neo4j\\+s|bolt\\+ssc|neo4j\\+ssc)://[^\\s]+");
     }
     
     private void printConfigSummary(LoopyConfig config) {

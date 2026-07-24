@@ -41,17 +41,17 @@ public class LoopyApplication implements Callable<Integer> {
     @Option(names = {"--config", "-c"}, description = "Configuration file path")
     private String configFile;
     
-    @Option(names = {"--neo4j-uri", "-u"}, 
+    @Option(names = {"--neo4j-uri", "-a"}, 
             description = "Neo4j connection URI",
             defaultValue = "${LOOPY_NEO4J_URI:-bolt://localhost:7687}")
     private String neo4jUri;
     
-    @Option(names = {"--username", "-U"}, 
+    @Option(names = {"--username", "-u"}, 
             description = "Neo4j username",
             defaultValue = "${LOOPY_USERNAME:-neo4j}")
     private String username;
     
-    @Option(names = {"--password", "-P"}, 
+    @Option(names = {"--password", "-p"}, 
             description = "Neo4j password", 
             interactive = true,
             defaultValue = "${LOOPY_PASSWORD:-password}")
@@ -190,7 +190,7 @@ public class LoopyApplication implements Callable<Integer> {
         
         // Validate Neo4j URI format
         if (neo4jUri != null && !isValidNeo4jUri(neo4jUri)) {
-            errors.add("Invalid Neo4j URI format. Expected format: bolt://host:port or neo4j://host:port");
+            errors.add("Invalid Neo4j URI format. Supported schemes: bolt://, bolt+s://, bolt+ssc://, neo4j://, neo4j+s://, neo4j+ssc://");
         }
         
         if (!errors.isEmpty()) {
@@ -248,7 +248,7 @@ public class LoopyApplication implements Callable<Integer> {
     }
     
     private boolean isValidNeo4jUri(String uri) {
-        return uri.matches("^(bolt|neo4j|bolt\\+s|neo4j\\+s)://[^\\s]+");
+        return uri.matches("^(bolt|neo4j|bolt\\+s|neo4j\\+s|bolt\\+ssc|neo4j\\+ssc)://[^\\s]+");
     }
     
     @Override

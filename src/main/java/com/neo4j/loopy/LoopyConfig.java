@@ -14,13 +14,13 @@ public class LoopyConfig {
     private Properties properties;
     
     // Neo4j Connection
-    @CliOption(names = {"--neo4j-uri", "-u"}, description = "Neo4j connection URI", envVar = "LOOPY_NEO4J_URI")
+    @CliOption(names = {"--neo4j-uri", "-a"}, description = "Neo4j connection URI", envVar = "LOOPY_NEO4J_URI")
     private String neo4jUri;
     
-    @CliOption(names = {"--username", "-U"}, description = "Neo4j username", envVar = "LOOPY_USERNAME")
+    @CliOption(names = {"--username", "-u"}, description = "Neo4j username", envVar = "LOOPY_USERNAME")
     private String neo4jUsername;
     
-    @CliOption(names = {"--password", "-P"}, description = "Neo4j password", envVar = "LOOPY_PASSWORD")
+    @CliOption(names = {"--password", "-p"}, description = "Neo4j password", envVar = "LOOPY_PASSWORD")
     private String neo4jPassword;
     
     // Load Parameters
@@ -171,7 +171,7 @@ public class LoopyConfig {
     }
     
     private boolean isValidNeo4jUri(String uri) {
-        return uri != null && uri.matches("^(bolt|neo4j|bolt\\+s|neo4j\\+s)://[^\\s]+");
+        return uri != null && uri.matches("^(bolt|neo4j|bolt\\+s|neo4j\\+s|bolt\\+ssc|neo4j\\+ssc)://[^\\s]+");
     }
     
     /**

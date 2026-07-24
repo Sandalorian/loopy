@@ -22,8 +22,8 @@ import java.util.concurrent.Callable;
          mixinStandardHelpOptions = true)
 public class TestConnectionCommand implements Callable<Integer> {
     
-    @Option(names = {"--neo4j-uri", "-u"}, 
-            description = "Neo4j connection URI (supports bolt://, neo4j://, bolt+s://, neo4j+s://)",
+    @Option(names = {"--neo4j-uri", "-a"}, 
+            description = "Neo4j connection URI (supports bolt://, neo4j://, bolt+s://, neo4j+s://, bolt+ssc://, neo4j+ssc://)",
             defaultValue = "${LOOPY_NEO4J_URI:-bolt://localhost:7687}")
     private String neo4jUri;
     
@@ -32,12 +32,12 @@ public class TestConnectionCommand implements Callable<Integer> {
             split = ",")
     private String[] nodeUris;
     
-    @Option(names = {"--username", "-U"}, 
+    @Option(names = {"--username", "-u"}, 
             description = "Neo4j username",
             defaultValue = "${LOOPY_USERNAME:-neo4j}")
     private String username;
     
-    @Option(names = {"--password", "-P"}, 
+    @Option(names = {"--password", "-p"}, 
             description = "Neo4j password", 
             interactive = true,
             defaultValue = "${LOOPY_PASSWORD:-password}")
@@ -69,11 +69,11 @@ public class TestConnectionCommand implements Callable<Integer> {
     
     /**
      * Detect if the URI indicates a cluster connection.
-     * neo4j:// and neo4j+s:// schemes indicate routing/cluster mode.
-     * bolt:// and bolt+s:// schemes are direct connections.
+     * neo4j://, neo4j+s://, and neo4j+ssc:// schemes indicate routing/cluster mode.
+     * bolt://, bolt+s://, and bolt+ssc:// schemes are direct connections.
      */
     private boolean isClusterUri(String uri) {
-        return uri != null && (uri.startsWith("neo4j://") || uri.startsWith("neo4j+s://"));
+        return uri != null && (uri.startsWith("neo4j://") || uri.startsWith("neo4j+s://") || uri.startsWith("neo4j+ssc://"));
     }
     
     private Integer runQuickTest() {
