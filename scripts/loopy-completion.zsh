@@ -22,9 +22,9 @@ _loopy() {
         '(-h --help)'{-h,--help}'[Show help information]'
         '(-V --version)'{-V,--version}'[Show version information]'
         '(-c --config)'{-c,--config}'[Configuration file path]:file:_files'
-        '(-u --neo4j-uri)'{-u,--neo4j-uri}'[Neo4j connection URI]:uri:(bolt://localhost:7687 neo4j://localhost:7687)'
-        '(-U --username)'{-U,--username}'[Neo4j username]:username:(neo4j)'
-        '(-P --password)'{-P,--password}'[Neo4j password]:password:'
+        '(-a --neo4j-uri)'{-a,--neo4j-uri}'[Neo4j connection URI]:uri:(bolt://localhost:7687 neo4j://localhost:7687)'
+        '(-u --username)'{-u,--username}'[Neo4j username]:username:(neo4j)'
+        '(-p --password)'{-p,--password}'[Neo4j password]:password:'
         '(-t --threads)'{-t,--threads}'[Number of worker threads]:threads:(1 2 4 8 16)'
         '(-d --duration)'{-d,--duration}'[Test duration in seconds]:seconds:(30 60 120 300 600)'
         '(-w --write-ratio)'{-w,--write-ratio}'[Write operation ratio]:ratio:(0.1 0.3 0.5 0.7 0.9)'
@@ -73,10 +73,10 @@ _loopy() {
                     ;;
                 test-connection)
                     _arguments \
-                        '(-u --neo4j-uri)'{-u,--neo4j-uri}'[Neo4j connection URI]:uri:' \
+                        '(-a --neo4j-uri)'{-a,--neo4j-uri}'[Neo4j connection URI]:uri:' \
                         '--nodes[Comma-separated list of cluster node URIs]:nodes:' \
-                        '(-U --username)'{-U,--username}'[Neo4j username]:username:' \
-                        '(-P --password)'{-P,--password}'[Neo4j password]:password:' \
+                        '(-u --username)'{-u,--username}'[Neo4j username]:username:' \
+                        '(-p --password)'{-p,--password}'[Neo4j password]:password:' \
                         '--full-diagnostics[Run comprehensive diagnostics]' \
                         '--diag[Run comprehensive diagnostics]' \
                         '--save-report[Save diagnostic report to file]:file:_files' \
