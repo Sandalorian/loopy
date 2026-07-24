@@ -94,9 +94,9 @@ These options are available for the main `loopy` command and apply across all su
 
 | Option | Short | Description | Default | Example |
 |--------|-------|-------------|---------|---------|
-| `--neo4j-uri` | `-u` | Neo4j connection URI | `bolt://localhost:7687` | `-u bolt://prod-server:7687` |
-| `--username` | `-U` | Neo4j username | `neo4j` | `-U admin` |
-| `--password` | `-P` | Neo4j password (interactive prompt) | `password` | `-P` (prompts securely) |
+| `--neo4j-uri` | `-a` | Neo4j connection URI | `bolt://localhost:7687` | `-a bolt://prod-server:7687` |
+| `--username` | `-u` | Neo4j username | `neo4j` | `-u admin` |
+| `--password` | `-p` | Neo4j password (interactive prompt) | `password` | `-p` (prompts securely) |
 | `--config` | `-c` | Configuration file path | `config.properties` | `-c prod-config.properties` |
 
 **Environment Variables:**
@@ -301,10 +301,10 @@ loopy test-connection [OPTIONS]
 ```
 
 **Options:**
-- `--neo4j-uri`, `-u` - Neo4j URI to test (supports bolt://, neo4j://, bolt+s://, neo4j+s://)
+- `--neo4j-uri`, `-a` - Neo4j URI to test (supports bolt://, neo4j://, bolt+s://, neo4j+s://, bolt+ssc://, neo4j+ssc://)
 - `--nodes` - Comma-separated list of cluster nodes to test individually
-- `--username`, `-U` - Username
-- `--password`, `-P` - Password
+- `--username`, `-u` - Username
+- `--password`, `-p` - Password
 - `--quick` - Quick connectivity test only
 - `--full-diagnostics`, `--diag` - Comprehensive diagnostics
 - `--save-report` - Save diagnostic report to file
@@ -318,8 +318,10 @@ The command automatically detects cluster URIs (neo4j://) and provides cluster-s
 **URI Schemes:**
 - `bolt://` - Direct connection to single instance
 - `bolt+s://` - Direct connection with TLS
+- `bolt+ssc://` - Direct connection with TLS (system certificate)
 - `neo4j://` - Cluster routing connection (auto-detected)
 - `neo4j+s://` - Cluster routing with TLS (auto-detected)
+- `neo4j+ssc://` - Cluster routing with TLS, system certificate (auto-detected)
 
 **Examples:**
 ```bash

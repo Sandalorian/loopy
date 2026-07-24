@@ -232,7 +232,7 @@ loopy --version
 loopy --help
 
 # Test Neo4j connection (requires running Neo4j instance)
-loopy test-connection -u bolt://localhost:7687 -U neo4j
+loopy test-connection -a bolt://localhost:7687 -u neo4j
 ```
 
 ---

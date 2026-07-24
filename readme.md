@@ -64,7 +64,7 @@ loopy-0.3.0/
 ### 1. Test Your Connection
 
 ```bash
-loopy test-connection -u bolt://localhost:7687 -U neo4j -P password
+loopy test-connection -a bolt://localhost:7687 -u neo4j -p password
 ```
 
 ### 2. Run a Simple Load Test
@@ -72,7 +72,7 @@ loopy test-connection -u bolt://localhost:7687 -U neo4j -P password
 Generate load for 60 seconds with 4 threads:
 
 ```bash
-loopy run -u bolt://localhost:7687 -U neo4j -P password -t 4 -d 60
+loopy run -a bolt://localhost:7687 -u neo4j -p password -t 4 -d 60
 ```
 
 ### 3. Run with a Custom Workload
@@ -80,7 +80,7 @@ loopy run -u bolt://localhost:7687 -U neo4j -P password -t 4 -d 60
 Use YAML-defined Cypher queries for realistic workloads:
 
 ```bash
-loopy run --cypher-file=example-workload.yaml -u bolt://localhost:7687 -U neo4j -P password
+loopy run --cypher-file=example-workload.yaml -a bolt://localhost:7687 -u neo4j -p password
 ```
 
 ## Configuration
@@ -124,13 +124,13 @@ Command-line arguments override configuration file settings.
 
 ```bash
 # 4 threads for 5 minutes (300 seconds)
-loopy run -t 4 -d 300 -u bolt://localhost:7687 -U neo4j -P password
+loopy run -t 4 -d 300 -a bolt://localhost:7687 -u neo4j -p password
 
 # 8 threads with 80% write operations
-loopy run -t 8 -d 600 -w 0.8 -u bolt://localhost:7687 -U neo4j -P password
+loopy run -t 8 -d 600 -w 0.8 -a bolt://localhost:7687 -u neo4j -p password
 
 # Connect to a remote cluster
-loopy run -t 4 -d 300 -u neo4j://cluster.example.com:7687 -U neo4j -P password
+loopy run -t 4 -d 300 -a neo4j://cluster.example.com:7687 -u neo4j -p password
 ```
 
 ### Custom Data Patterns
@@ -140,7 +140,7 @@ loopy run -t 4 -d 300 -u neo4j://cluster.example.com:7687 -U neo4j -P password
 loopy run -t 4 -d 300 \
   --node-labels="Customer,Product,Order" \
   --relationship-types="PURCHASED,REVIEWED,RECOMMENDED" \
-  -u bolt://localhost:7687 -U neo4j -P password
+  -a bolt://localhost:7687 -u neo4j -p password
 ```
 
 ### Enable Logging
@@ -148,15 +148,15 @@ loopy run -t 4 -d 300 \
 ```bash
 # CSV output for analysis
 loopy run -t 4 -d 300 --csv-logging --csv-file=results.csv \
-  -u bolt://localhost:7687 -U neo4j -P password
+  -a bolt://localhost:7687 -u neo4j -p password
 
 # Verbose output
 loopy run -t 4 -d 300 --verbose \
-  -u bolt://localhost:7687 -U neo4j -P password
+  -a bolt://localhost:7687 -u neo4j -p password
 
 # JSON statistics format
 loopy run -t 4 -d 300 --stats-format=json \
-  -u bolt://localhost:7687 -U neo4j -P password
+  -a bolt://localhost:7687 -u neo4j -p password
 ```
 
 ## Output
@@ -193,9 +193,9 @@ Loopy displays real-time statistics during execution:
 
 | Option | Short | Description |
 |--------|-------|-------------|
-| `--neo4j-uri` | `-u` | Neo4j connection URI |
-| `--username` | `-U` | Neo4j username |
-| `--password` | `-P` | Neo4j password |
+| `--neo4j-uri` | `-a` | Neo4j connection URI |
+| `--username` | `-u` | Neo4j username |
+| `--password` | `-p` | Neo4j password |
 | `--config` | `-c` | Configuration file path |
 | `--help` | `-h` | Show help message |
 | `--version` | `-V` | Print version information |
@@ -260,18 +260,18 @@ queries:
 ```bash
 # Run workload
 java -jar loopy-0.1.0.jar run --cypher-file=workload.yaml -t 8 -d 300 \
-  -u bolt://localhost:7687 -U neo4j -P password
+  -a bolt://localhost:7687 -u neo4j -p password
 
 # Validate workload before running
 java -jar loopy-0.1.0.jar validate --cypher-file=workload.yaml
 
 # Dry run (validate + test connection, no execution)
 java -jar loopy-0.1.0.jar run --cypher-file=workload.yaml --dry-run \
-  -u bolt://localhost:7687 -U neo4j -P password
+  -a bolt://localhost:7687 -u neo4j -p password
 
 # Enable per-query statistics
 java -jar loopy-0.1.0.jar run --cypher-file=workload.yaml --verbose-stats \
-  -u bolt://localhost:7687 -U neo4j -P password
+  -a bolt://localhost:7687 -u neo4j -p password
 ```
 
 ### Parameter Generators
@@ -447,7 +447,7 @@ ENTRYPOINT ["java", "-jar", "loopy.jar"]
 Build and run:
 ```bash
 docker build -t loopy .
-docker run loopy run -u bolt://host.docker.internal:7687 -U neo4j -P password -t 4 -d 60
+docker run loopy run -a bolt://host.docker.internal:7687 -u neo4j -p password -t 4 -d 60
 ```
 
 ## Legacy Argument Support
