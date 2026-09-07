@@ -1,5 +1,7 @@
 package com.neo4j.loopy.config;
 
+import com.neo4j.loopy.TransactionMode;
+import com.neo4j.loopy.tx.QueryUnit;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.LoaderOptions;
@@ -15,6 +17,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
 
 /**
  * Configuration model for YAML-based Cypher workload definitions.
@@ -25,8 +28,14 @@ public class CypherWorkloadConfig {
     private String name;
     private String description;
     private List<QueryDefinition> queries = new ArrayList<>();
+    private List<TransactionGroupDefinition> transactionGroups = new ArrayList<>();
     
-    // Computed cumulative weights for efficient weighted random selection
+    // Unified selection pool (individual queries + transaction groups)
+    private List<QueryUnit> selectionPool = new ArrayList<>();
+    private double[] poolCumulativeWeights;
+    private double poolTotalWeight;
+
+    // Kept for backward compatibility
     private double[] cumulativeWeights;
     private double totalWeight;
     
@@ -52,26 +61,68 @@ public class CypherWorkloadConfig {
     }
     
     /**
-     * Compute cumulative weights for efficient O(log n) weighted random selection
+     * Compute cumulative weights for efficient O(log n) weighted random selection.
+     * Builds a unified pool of individual queries and transaction groups.
      */
     private void computeCumulativeWeights() {
-        if (queries == null || queries.isEmpty()) {
+        selectionPool = new ArrayList<>();
+        List<Double> poolWeights = new ArrayList<>();
+
+        if (queries != null) {
+            for (QueryDefinition q : queries) {
+                TransactionMode mode = q.getTransactionMode() != null
+                    ? TransactionMode.fromString(q.getTransactionMode()) : null;
+                selectionPool.add(QueryUnit.single(q, mode));
+                poolWeights.add(q.getWeight());
+            }
+        }
+
+        if (transactionGroups != null) {
+            for (TransactionGroupDefinition g : transactionGroups) {
+                if (g.getQueries() != null && !g.getQueries().isEmpty()) {
+                    TransactionMode mode = g.getTransactionMode() != null
+                        ? TransactionMode.fromString(g.getTransactionMode()) : null;
+                    selectionPool.add(QueryUnit.group(g.getId(), g.getQueries(), mode));
+                    poolWeights.add(g.getWeight());
+                }
+            }
+        }
+
+        poolCumulativeWeights = new double[selectionPool.size()];
+        poolTotalWeight = 0;
+        for (int i = 0; i < poolWeights.size(); i++) {
+            poolTotalWeight += poolWeights.get(i);
+            poolCumulativeWeights[i] = poolTotalWeight;
+        }
+
+        // Backward-compat arrays for selectWeightedQuery()
+        if (queries != null && !queries.isEmpty()) {
+            cumulativeWeights = new double[queries.size()];
+            totalWeight = 0;
+            for (int i = 0; i < queries.size(); i++) {
+                totalWeight += queries.get(i).getWeight();
+                cumulativeWeights[i] = totalWeight;
+            }
+        } else {
             cumulativeWeights = new double[0];
             totalWeight = 0;
-            return;
-        }
-        
-        cumulativeWeights = new double[queries.size()];
-        totalWeight = 0;
-        
-        for (int i = 0; i < queries.size(); i++) {
-            totalWeight += queries.get(i).getWeight();
-            cumulativeWeights[i] = totalWeight;
         }
     }
     
     /**
-     * Select a query based on configured weights using binary search
+     * Select a query unit (single query or transaction group) based on configured
+     * weights using binary search over the unified selection pool.
+     */
+    public QueryUnit selectQueryUnit() {
+        if (selectionPool.isEmpty()) {
+            throw new IllegalStateException("No queries or transaction groups configured");
+        }
+        double value = ThreadLocalRandom.current().nextDouble() * poolTotalWeight;
+        return selectionPool.get(binarySearch(poolCumulativeWeights, value));
+    }
+
+    /**
+     * Select a query based on configured weights using binary search.
      * @return selected QueryDefinition
      */
     public QueryDefinition selectWeightedQuery() {
@@ -81,21 +132,21 @@ public class CypherWorkloadConfig {
         
         Random random = ThreadLocalRandom.current();
         double value = random.nextDouble() * totalWeight;
-        
-        // Binary search for the query
+        return queries.get(binarySearch(cumulativeWeights, value));
+    }
+
+    private int binarySearch(double[] weights, double value) {
         int low = 0;
-        int high = cumulativeWeights.length - 1;
-        
+        int high = weights.length - 1;
         while (low < high) {
             int mid = (low + high) / 2;
-            if (cumulativeWeights[mid] < value) {
+            if (weights[mid] < value) {
                 low = mid + 1;
             } else {
                 high = mid;
             }
         }
-        
-        return queries.get(low);
+        return low;
     }
     
     // Getters and setters
@@ -110,8 +161,14 @@ public class CypherWorkloadConfig {
         this.queries = queries; 
         computeCumulativeWeights();
     }
+
+    public List<TransactionGroupDefinition> getTransactionGroups() { return transactionGroups; }
+    public void setTransactionGroups(List<TransactionGroupDefinition> transactionGroups) {
+        this.transactionGroups = transactionGroups;
+        computeCumulativeWeights();
+    }
     
-    public double getTotalWeight() { return totalWeight; }
+    public double getTotalWeight() { return poolTotalWeight; }
     
     /**
      * Represents a single query definition within the workload
@@ -122,6 +179,7 @@ public class CypherWorkloadConfig {
         private double weight = 1.0;
         private QueryType type = QueryType.READ;
         private Map<String, String> parameters = new HashMap<>();
+        private String transactionMode;  // optional per-query override
         
         public QueryDefinition() {
         }
@@ -230,6 +288,9 @@ public class CypherWorkloadConfig {
         public Map<String, String> getParameters() { return parameters; }
         public void setParameters(Map<String, String> parameters) { this.parameters = parameters; }
         
+        public String getTransactionMode() { return transactionMode; }
+        public void setTransactionMode(String transactionMode) { this.transactionMode = transactionMode; }
+        
         public boolean isWrite() {
             return type == QueryType.WRITE;
         }
@@ -244,8 +305,81 @@ public class CypherWorkloadConfig {
                     "id='" + id + '\'' +
                     ", type=" + type +
                     ", weight=" + weight +
+                    (transactionMode != null ? ", transactionMode='" + transactionMode + '\'': "") +
                     '}';
         }
+    }
+
+    /**
+     * A {@link QueryDefinition} whose parameters are supplied dynamically at runtime
+     * rather than from YAML generator specs. Used by {@link com.neo4j.loopy.LoopyWorker}
+     * to wrap inline Cypher with live parameter values.
+     */
+    public static class DynamicQueryDefinition extends QueryDefinition {
+
+        private final Supplier<Map<String, Object>> paramSupplier;
+
+        public DynamicQueryDefinition(String id, String cypher, QueryType type,
+                                      Supplier<Map<String, Object>> paramSupplier) {
+            setId(id);
+            setCypher(cypher);
+            setType(type);
+            this.paramSupplier = paramSupplier;
+        }
+
+        @Override
+        public Map<String, Object> generateParameters() {
+            return paramSupplier.get();
+        }
+    }
+
+    /**
+     * A named group of queries that should execute together in a single transaction.
+     * All queries in the group are run within one transaction callback; the group as
+     * a whole participates in the weighted selection pool.
+     *
+     * <p>YAML example:
+     * <pre>
+     * transactionGroups:
+     *   - id: order-workflow
+     *     weight: 10
+     *     transactionMode: explicit
+     *     queries:
+     *       - id: create-order
+     *         cypher: "CREATE (o:Order {id: $orderId}) RETURN o"
+     *         type: WRITE
+     *         parameters:
+     *           orderId: "random:uuid"
+     *       - id: update-inventory
+     *         cypher: "MATCH (p:Product {id: $productId}) SET p.stock = p.stock - 1"
+     *         type: WRITE
+     *         parameters:
+     *           productId: "random:int:1:1000"
+     * </pre>
+     */
+    public static class TransactionGroupDefinition {
+        private String id;
+        private String description;
+        private double weight = 1.0;
+        private String transactionMode;
+        private List<QueryDefinition> queries = new ArrayList<>();
+
+        public TransactionGroupDefinition() {}
+
+        public String getId() { return id; }
+        public void setId(String id) { this.id = id; }
+
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+
+        public double getWeight() { return weight; }
+        public void setWeight(double weight) { this.weight = weight; }
+
+        public String getTransactionMode() { return transactionMode; }
+        public void setTransactionMode(String transactionMode) { this.transactionMode = transactionMode; }
+
+        public List<QueryDefinition> getQueries() { return queries; }
+        public void setQueries(List<QueryDefinition> queries) { this.queries = queries; }
     }
     
     /**

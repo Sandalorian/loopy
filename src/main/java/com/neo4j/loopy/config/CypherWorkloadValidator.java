@@ -9,6 +9,7 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.LoaderOptions;
 
+import com.neo4j.loopy.TransactionMode;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -163,8 +164,11 @@ public class CypherWorkloadValidator {
         
         // Step 6: Validate parameter specifications
         validateParameters(config);
+
+        // Step 7: Validate transaction modes and groups
+        validateTransactionModes(config);
         
-        // Step 7: Optional Cypher syntax validation
+        // Step 8: Optional Cypher syntax validation
         if (neo4jUri != null && !hasErrors()) {
             validateCypherSyntax(config, neo4jUri, username, password);
         }
@@ -191,9 +195,11 @@ public class CypherWorkloadValidator {
             warnings.add("Workload has no name specified");
         }
         
-        // Validate queries exist
-        if (config.getQueries() == null || config.getQueries().isEmpty()) {
-            addError("Workload must contain at least one query", null, null);
+        // Validate queries or transaction groups exist
+        boolean hasQueries = config.getQueries() != null && !config.getQueries().isEmpty();
+        boolean hasGroups = config.getTransactionGroups() != null && !config.getTransactionGroups().isEmpty();
+        if (!hasQueries && !hasGroups) {
+            addError("Workload must contain at least one query or transaction group", null, null);
             return;
         }
         
@@ -218,16 +224,50 @@ public class CypherWorkloadValidator {
             
             queryIndex++;
         }
+
+        // Validate transaction groups structure
+        if (config.getTransactionGroups() != null) {
+            int groupIndex = 0;
+            for (CypherWorkloadConfig.TransactionGroupDefinition group : config.getTransactionGroups()) {
+                String groupId = group.getId() != null ? group.getId() : "group[" + groupIndex + "]";
+                if (group.getId() == null || group.getId().trim().isEmpty()) {
+                    addError("Transaction group is missing required 'id' field",
+                        "group[" + groupIndex + "]", "id");
+                }
+                if (group.getQueries() == null || group.getQueries().isEmpty()) {
+                    addError("Transaction group must contain at least one query", groupId, "queries");
+                } else {
+                    int qi = 0;
+                    for (CypherWorkloadConfig.QueryDefinition q : group.getQueries()) {
+                        String qId = q.getId() != null ? q.getId() : groupId + "[" + qi + "]";
+                        if (q.getCypher() == null || q.getCypher().trim().isEmpty()) {
+                            addError("Query in group is missing required 'cypher' field", qId, "cypher");
+                        }
+                        qi++;
+                    }
+                }
+                groupIndex++;
+            }
+        }
     }
     
     private void validateUniqueIds(CypherWorkloadConfig config) {
-        if (config.getQueries() == null) return;
-        
         Set<String> seenIds = new HashSet<>();
-        for (CypherWorkloadConfig.QueryDefinition query : config.getQueries()) {
-            if (query.getId() != null) {
-                if (!seenIds.add(query.getId())) {
-                    addError("Duplicate query ID: " + query.getId(), query.getId(), "id");
+        if (config.getQueries() != null) {
+            for (CypherWorkloadConfig.QueryDefinition query : config.getQueries()) {
+                if (query.getId() != null) {
+                    if (!seenIds.add(query.getId())) {
+                        addError("Duplicate ID: " + query.getId(), query.getId(), "id");
+                    }
+                }
+            }
+        }
+        if (config.getTransactionGroups() != null) {
+            for (CypherWorkloadConfig.TransactionGroupDefinition group : config.getTransactionGroups()) {
+                if (group.getId() != null) {
+                    if (!seenIds.add(group.getId())) {
+                        addError("Duplicate ID: " + group.getId(), group.getId(), "id");
+                    }
                 }
             }
         }
@@ -306,6 +346,57 @@ public class CypherWorkloadValidator {
         }
     }
     
+    private void validateTransactionModes(CypherWorkloadConfig config) {
+        // Validate per-query transactionMode overrides
+        if (config.getQueries() != null) {
+            for (CypherWorkloadConfig.QueryDefinition query : config.getQueries()) {
+                String modeStr = query.getTransactionMode();
+                if (modeStr != null) {
+                    try {
+                        TransactionMode.fromString(modeStr);
+                    } catch (IllegalArgumentException e) {
+                        addError("Invalid transactionMode: '" + modeStr +
+                            "'. Valid modes: auto-commit, explicit, managed-read, managed-write, execute-query",
+                            query.getId(), "transactionMode");
+                    }
+                }
+            }
+        }
+
+        // Validate transaction groups
+        if (config.getTransactionGroups() != null) {
+            for (CypherWorkloadConfig.TransactionGroupDefinition group : config.getTransactionGroups()) {
+                String modeStr = group.getTransactionMode();
+                if (modeStr != null) {
+                    try {
+                        TransactionMode mode = TransactionMode.fromString(modeStr);
+                        // execute-query cannot group — each query is a separate driver.executeQuery() call
+                        if (mode == TransactionMode.EXECUTE_QUERY &&
+                                group.getQueries() != null && group.getQueries().size() > 1) {
+                            warnings.add("Transaction group '" + group.getId() +
+                                "' uses execute-query mode with " + group.getQueries().size() +
+                                " queries. Each query will be executed as a separate driver.executeQuery() call.");
+                        }
+                        // managed-read with write queries will fail at runtime
+                        if (mode == TransactionMode.MANAGED_READ && group.getQueries() != null) {
+                            boolean hasWrites = group.getQueries().stream().anyMatch(
+                                q -> q.getType() == CypherWorkloadConfig.QueryType.WRITE);
+                            if (hasWrites) {
+                                warnings.add("Transaction group '" + group.getId() +
+                                    "' uses managed-read mode but contains WRITE queries. " +
+                                    "Write queries will fail in a read-only transaction.");
+                            }
+                        }
+                    } catch (IllegalArgumentException e) {
+                        addError("Invalid transactionMode: '" + modeStr +
+                            "'. Valid modes: auto-commit, explicit, managed-read, managed-write, execute-query",
+                            group.getId(), "transactionMode");
+                    }
+                }
+            }
+        }
+    }
+
     private boolean isValidGeneratorSpec(String spec) {
         String[] parts = spec.split(":");
         if (parts.length < 2) return false;
