@@ -54,6 +54,7 @@ public class LoopyApplication implements Callable<Integer> {
     @Option(names = {"--password", "-p"}, 
             description = "Neo4j password", 
             interactive = true,
+            arity = "0..1",
             defaultValue = "${LOOPY_PASSWORD:-password}")
     private String password;
     
