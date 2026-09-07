@@ -22,16 +22,21 @@ public class LoopyStats {
     private final AtomicLong readOperations = new AtomicLong(0);
     private final AtomicLong errors = new AtomicLong(0);
     private final AtomicLong totalResponseTime = new AtomicLong(0);
+    private final AtomicLong retryAttempts = new AtomicLong(0);
+    // Counts completed transactions (one grouped explicit/managed transaction = 1, regardless of query count inside)
+    private final AtomicLong transactionCount = new AtomicLong(0);
     
     // Per-query statistics
     private final ConcurrentHashMap<String, QueryStats> queryStats = new ConcurrentHashMap<>();
     private boolean verboseStats = false;
     private String statsFormat = "summary";
+    private final String transactionMode;
     
     private long lastReportTime = System.currentTimeMillis();
     private long lastWriteCount = 0;
     private long lastReadCount = 0;
     private long lastOperationCount = 0;
+    private long lastTransactionCount = 0;
     
     private final FileWriter csvWriter;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -43,12 +48,13 @@ public class LoopyStats {
     public LoopyStats(LoopyConfig config, boolean verboseStats, String statsFormat) {
         this.verboseStats = verboseStats;
         this.statsFormat = statsFormat != null ? statsFormat : "summary";
+        this.transactionMode = config.getTransactionMode();
         
         FileWriter writer = null;
         if (config.isCsvLoggingEnabled()) {
             try {
                 writer = new FileWriter(config.getCsvLoggingFile());
-                writer.write("timestamp,total_operations,write_ops_per_sec,read_ops_per_sec,avg_response_ms,errors\n");
+                writer.write("timestamp,total_operations,write_ops_per_sec,read_ops_per_sec,avg_response_ms,errors,transaction_mode,retry_attempts,tx_per_sec\n");
             } catch (IOException e) {
                 System.err.println("Warning: Could not create CSV log file: " + e.getMessage());
             }
@@ -104,6 +110,28 @@ public class LoopyStats {
     public void recordError() {
         errors.incrementAndGet();
     }
+
+    /**
+     * Record a managed-transaction retry attempt.
+     * Called each time the driver re-invokes the transaction callback.
+     *
+     * @param queryId the query (or group) being retried
+     */
+    public void recordRetryAttempt(String queryId) {
+        retryAttempts.incrementAndGet();
+        if (verboseStats && queryId != null) {
+            queryStats.computeIfAbsent(queryId, k -> new QueryStats(queryId))
+                     .recordRetry();
+        }
+    }
+
+    /**
+     * Record one completed transaction (a single auto-commit query, or one grouped
+     * explicit/managed transaction regardless of how many queries it contained).
+     */
+    public void recordTransaction() {
+        transactionCount.incrementAndGet();
+    }
     
     public void printStats() {
         switch (statsFormat.toLowerCase()) {
@@ -134,21 +162,26 @@ public class LoopyStats {
         long avgResponseTime = currentOperations > 0 ? 
             totalResponseTime.get() / currentOperations : 0;
         
+        long currentTransactions = transactionCount.get();
+        double txPerSec = (currentTransactions - lastTransactionCount) / (timeDiff / 1000.0);
+        
         String timestamp = LocalDateTime.now().format(formatter);
         String output = String.format(
-            "[%s] Operations: %,d | Write/sec: %.0f | Read/sec: %.0f | Avg Response: %dms | Errors: %d",
-            timestamp, currentOperations, writePerSec, readPerSec, avgResponseTime, errors.get()
+            "[%s] Operations: %,d | Write/sec: %.0f | Read/sec: %.0f | Tx/sec: %.0f | Avg Response: %dms | Errors: %d | Retries: %d",
+            timestamp, currentOperations, writePerSec, readPerSec, txPerSec, avgResponseTime, errors.get(),
+            retryAttempts.get()
         );
         
         System.out.println(output);
         
         // Write to CSV if enabled
-        writeToCsv(timestamp, currentOperations, writePerSec, readPerSec, avgResponseTime);
+        writeToCsv(timestamp, currentOperations, writePerSec, readPerSec, avgResponseTime, txPerSec);
         
         lastReportTime = currentTime;
         lastWriteCount = currentWrites;
         lastReadCount = currentReads;
         lastOperationCount = currentOperations;
+        lastTransactionCount = currentTransactions;
     }
     
     private void printDetailedStats() {
@@ -158,14 +191,15 @@ public class LoopyStats {
             System.out.println("\n  Per-Query Statistics:");
             for (Map.Entry<String, QueryStats> entry : queryStats.entrySet()) {
                 QueryStats stats = entry.getValue();
-                System.out.printf("    %s: count=%d, avg=%.1fms, p50=%.1fms, p95=%.1fms, p99=%.1fms, errors=%d%n",
+                System.out.printf("    %s: count=%d, avg=%.1fms, p50=%.1fms, p95=%.1fms, p99=%.1fms, errors=%d, retries=%d%n",
                     stats.queryId,
                     stats.getCount(),
                     stats.getAvgResponseTime(),
                     stats.getPercentile(50),
                     stats.getPercentile(95),
                     stats.getPercentile(99),
-                    stats.getErrorCount()
+                    stats.getErrorCount(),
+                    stats.getRetryCount()
                 );
             }
         }
@@ -194,7 +228,13 @@ public class LoopyStats {
         json.append("\"writeOpsPerSec\":").append(String.format("%.2f", writePerSec)).append(",");
         json.append("\"readOpsPerSec\":").append(String.format("%.2f", readPerSec)).append(",");
         json.append("\"avgResponseMs\":").append(avgResponseTime).append(",");
-        json.append("\"errors\":").append(errors.get());
+        long currentTransactions = transactionCount.get();
+        double txPerSec = (currentTransactions - lastTransactionCount) / (timeDiff / 1000.0);
+        
+        json.append("\"errors\":").append(errors.get()).append(",");
+        json.append("\"retryAttempts\":").append(retryAttempts.get()).append(",");
+        json.append("\"transactionMode\":\"").append(transactionMode).append("\",");
+        json.append("\"txPerSec\":").append(String.format("%.2f", txPerSec));
         
         if (verboseStats && !queryStats.isEmpty()) {
             json.append(",\"queries\":{");
@@ -209,6 +249,7 @@ public class LoopyStats {
                 json.append("\"p50\":").append(String.format("%.1f", stats.getPercentile(50))).append(",");
                 json.append("\"p95\":").append(String.format("%.1f", stats.getPercentile(95))).append(",");
                 json.append("\"p99\":").append(String.format("%.1f", stats.getPercentile(99))).append(",");
+                json.append("\"retries\":").append(stats.getRetryCount()).append(",");
                 json.append("\"errors\":").append(stats.getErrorCount());
                 json.append("}");
             }
@@ -219,19 +260,22 @@ public class LoopyStats {
         System.out.println(json);
         
         // Write to CSV if enabled
-        writeToCsv(LocalDateTime.now().format(formatter), currentOperations, writePerSec, readPerSec, avgResponseTime);
+        writeToCsv(LocalDateTime.now().format(formatter), currentOperations, writePerSec, readPerSec, avgResponseTime, txPerSec);
         
         lastReportTime = currentTime;
         lastWriteCount = currentWrites;
         lastReadCount = currentReads;
         lastOperationCount = currentOperations;
+        lastTransactionCount = currentTransactions;
     }
     
-    private void writeToCsv(String timestamp, long operations, double writePerSec, double readPerSec, long avgResponse) {
+    private void writeToCsv(String timestamp, long operations, double writePerSec, double readPerSec,
+                             long avgResponse, double txPerSec) {
         if (csvWriter != null) {
             try {
-                csvWriter.write(String.format("%s,%d,%.2f,%.2f,%d,%d\n",
-                    timestamp, operations, writePerSec, readPerSec, avgResponse, errors.get()));
+                csvWriter.write(String.format("%s,%d,%.2f,%.2f,%d,%d,%s,%d,%.2f\n",
+                    timestamp, operations, writePerSec, readPerSec, avgResponse, errors.get(),
+                    transactionMode, retryAttempts.get(), txPerSec));
                 csvWriter.flush();
             } catch (IOException e) {
                 System.err.println("Warning: Could not write to CSV: " + e.getMessage());
@@ -248,6 +292,9 @@ public class LoopyStats {
         System.out.println("Total Writes: " + writeOperations.get());
         System.out.println("Total Reads: " + readOperations.get());
         System.out.println("Total Errors: " + getErrors());
+        System.out.println("Total Retry Attempts: " + retryAttempts.get());
+        System.out.println("Total Transactions: " + transactionCount.get());
+        System.out.println("Transaction Mode: " + transactionMode);
         
         if (getTotalOperations() > 0) {
             System.out.printf("Average Response Time: %dms%n", totalResponseTime.get() / getTotalOperations());
@@ -259,12 +306,12 @@ public class LoopyStats {
             for (Map.Entry<String, QueryStats> entry : queryStats.entrySet()) {
                 QueryStats stats = entry.getValue();
                 System.out.printf("%s:%n", stats.queryId);
-                System.out.printf("  Count: %d (writes: %d, reads: %d)%n", 
+                System.out.printf("  Count: %d (writes: %d, reads: %d)%n",
                     stats.getCount(), stats.writeCount.get(), stats.readCount.get());
                 System.out.printf("  Avg Response: %.1fms%n", stats.getAvgResponseTime());
                 System.out.printf("  Percentiles: p50=%.1fms, p95=%.1fms, p99=%.1fms%n",
                     stats.getPercentile(50), stats.getPercentile(95), stats.getPercentile(99));
-                System.out.printf("  Errors: %d%n", stats.getErrorCount());
+                System.out.printf("  Errors: %d | Retries: %d%n", stats.getErrorCount(), stats.getRetryCount());
             }
         }
     }
@@ -309,6 +356,7 @@ public class LoopyStats {
         private final AtomicLong readCount = new AtomicLong(0);
         private final AtomicLong totalResponseTime = new AtomicLong(0);
         private final AtomicLong errorCount = new AtomicLong(0);
+        private final AtomicLong retryCount = new AtomicLong(0);
         
         // Reservoir sampling for percentile calculation (thread-safe with synchronization)
         private static final int RESERVOIR_SIZE = 1000;
@@ -349,14 +397,17 @@ public class LoopyStats {
         public void recordError(String errorMessage) {
             errorCount.incrementAndGet();
         }
+
+        public void recordRetry() {
+            retryCount.incrementAndGet();
+        }
         
         public long getCount() {
             return totalCount.get();
         }
         
-        public long getErrorCount() {
-            return errorCount.get();
-        }
+        public long getErrorCount() { return errorCount.get(); }
+        public long getRetryCount() { return retryCount.get(); }
         
         public double getAvgResponseTime() {
             long count = totalCount.get();
