@@ -164,14 +164,16 @@ loopy run -t 4 -d 300 --stats-format=json \
 Loopy displays real-time statistics during execution:
 
 ```
-[2026-02-10 10:30:00] Operations: 12,450 | Write/sec: 285 | Read/sec: 122 | Avg Response: 15ms | Errors: 0
-[2026-02-10 10:30:10] Operations: 15,230 | Write/sec: 278 | Read/sec: 118 | Avg Response: 18ms | Errors: 2
+[2026-02-10 10:30:00] Operations: 12,450 | Write/sec: 285 | Read/sec: 122 | Tx/sec: 407 | Avg Response: 15ms | Errors: 0 | Retries: 0
+[2026-02-10 10:30:10] Operations: 15,230 | Write/sec: 278 | Read/sec: 118 | Tx/sec: 396 | Avg Response: 18ms | Errors: 2 | Retries: 3
 ```
 
 **Metrics reported:**
 - Operations per second (read/write separately)
+- Transactions per second (distinct from operations/sec when using transaction groups — see [Transaction Modes](#transaction-modes))
 - Average response times
 - Error counts and connection issues
+- Driver-managed retry attempts (managed-read/managed-write/execute-query modes)
 - Total operations completed
 
 ## Command Reference
@@ -220,6 +222,8 @@ Loopy displays real-time statistics during execution:
 | `--dry-run` | | Validate without executing | false |
 | `--fail-fast` | | Abort on first query failure | false |
 | `--verbose-stats` | | Enable per-query statistics | false |
+| `--transaction-mode` | `-m` | Transaction mode: auto-commit, explicit, managed-read, managed-write, execute-query | auto-commit |
+| `--transaction-group-size` | `-g` | Operations grouped into a single explicit/managed transaction (programmatic mode only) | 1 |
 
 ## YAML Workloads
 
@@ -319,6 +323,69 @@ create-order:
 - `--cypher-file` cannot be used with `--node-labels` or `--relationship-types`
 - `--write-ratio` is ignored (query types are defined in YAML)
 - Use `--fail-fast` to stop on the first error
+
+## Transaction Modes
+
+A **session** is a driver-side abstraction — opening or closing one has no effect on the
+server. A session can only hold one **transaction** at a time, and Loopy can exercise every
+transaction API Neo4j offers so you can compare their behavior and performance:
+
+| Mode | Driver API | Retries | Multi-query |
+|------|-----------|---------|-------------|
+| `auto-commit` | `session.run()` | None — whatever result/error the server gives is returned directly | No |
+| `explicit` | `session.beginTransaction()` → `tx.run()` → `tx.commit()`/`rollback()` | None — full manual control | Yes, via transaction groups |
+| `managed-read` | `session.executeRead(tx -> ...)` | Driver retries transient errors automatically; routes to a read server | Yes, via transaction groups |
+| `managed-write` | `session.executeWrite(tx -> ...)` | Driver retries transient errors automatically; routes to a write server | Yes, via transaction groups |
+| `execute-query` | `driver.executeQuery()` | Same as managed (it creates a managed transaction under the hood), but a distinct code path — useful for comparing API overhead | No (each query is its own call) |
+
+Set the mode for an entire run with `--transaction-mode` / `-m`:
+
+```bash
+# Compare auto-commit vs. managed-write under the same load
+loopy run -m auto-commit -t 4 -d 60 -a bolt://localhost:7687 -u neo4j -p password
+loopy run -m managed-write -t 4 -d 60 -a bolt://localhost:7687 -u neo4j -p password
+```
+
+### Grouping Operations into One Transaction
+
+For `explicit` and `managed-*` modes, multiple queries can be grouped so they run inside a
+**single** transaction:
+
+- **Programmatic mode** (no YAML): use `--transaction-group-size` / `-g` to group that many
+  generated operations (all reads or all writes) into one transaction.
+
+  ```bash
+  loopy run -m managed-write -g 5 -t 4 -d 60 -a bolt://localhost:7687 -u neo4j -p password
+  ```
+
+- **YAML workloads**: define a `transactionGroups` entry. All queries in the group share one
+  transaction and the group participates in weighted selection alongside individual queries:
+
+  ```yaml
+  transactionGroups:
+    - id: "place-order-workflow"
+      weight: 10
+      transactionMode: explicit
+      queries:
+        - id: "create-order"
+          cypher: "CREATE (o:Order {id: $orderId}) RETURN o"
+          type: WRITE
+          parameters:
+            orderId: "random:uuid"
+        - id: "update-inventory"
+          cypher: "MATCH (p:Product {id: $productId}) SET p.stock = p.stock - 1"
+          type: WRITE
+          parameters:
+            productId: "random:int:1:1000"
+  ```
+
+  Individual queries in a YAML workload can also override the global mode with a per-query
+  `transactionMode` field — see [example-workload.yaml](example-workload.yaml) for both
+  patterns side by side.
+
+> **Note:** `execute-query` mode cannot group queries — each call to `driver.executeQuery()`
+> is independent. `managed-read` groups must not contain WRITE queries (the validator warns
+> about this when validating a YAML workload).
 
 ## Shell Completion
 
