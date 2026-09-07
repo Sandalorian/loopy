@@ -46,6 +46,13 @@ public class LoopyConfig {
     @CliOption(names = {"--property-size"}, description = "Property size in bytes", min = 1)
     private int propertySizeBytes;
     
+    // Transaction Mode
+    @CliOption(names = {"--transaction-mode", "-m"}, description = "Transaction mode: auto-commit, explicit, managed-read, managed-write, execute-query", envVar = "LOOPY_TRANSACTION_MODE")
+    private String transactionMode;
+
+    @CliOption(names = {"--transaction-group-size", "-g"}, description = "Number of operations grouped into a single explicit/managed transaction (default: 1, no grouping)", min = 1, envVar = "LOOPY_TRANSACTION_GROUP_SIZE")
+    private int transactionGroupSize;
+
     // Reporting
     @CliOption(names = {"--report-interval"}, description = "Statistics reporting interval in seconds", min = 1)
     private int reportIntervalSeconds;
@@ -119,6 +126,8 @@ public class LoopyConfig {
         reportIntervalSeconds = Integer.parseInt(properties.getProperty("report.interval.seconds", "10"));
         csvLoggingEnabled = Boolean.parseBoolean(properties.getProperty("csv.logging.enabled", "false"));
         csvLoggingFile = properties.getProperty("csv.logging.file", "loopy-stats.csv");
+        transactionMode = properties.getProperty("transaction.mode", "auto-commit");
+        transactionGroupSize = Integer.parseInt(properties.getProperty("transaction.group.size", "1"));
     }
     
     // Getters
@@ -135,6 +144,9 @@ public class LoopyConfig {
     public int getReportIntervalSeconds() { return reportIntervalSeconds; }
     public boolean isCsvLoggingEnabled() { return csvLoggingEnabled; }
     public String getCsvLoggingFile() { return csvLoggingFile; }
+    public String getTransactionMode() { return transactionMode; }
+    public TransactionMode getTransactionModeEnum() { return TransactionMode.fromString(transactionMode); }
+    public int getTransactionGroupSize() { return transactionGroupSize; }
     
     /**
      * Validate the configuration values
@@ -163,6 +175,17 @@ public class LoopyConfig {
         
         if (reportIntervalSeconds < 1) {
             throw new IllegalArgumentException("Report interval must be at least 1 second, got: " + reportIntervalSeconds);
+        }
+
+        try {
+            TransactionMode.fromString(transactionMode);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid transaction mode: " + transactionMode +
+                ". Valid modes: auto-commit, explicit, managed-read, managed-write, execute-query");
+        }
+
+        if (transactionGroupSize < 1) {
+            throw new IllegalArgumentException("Transaction group size must be at least 1, got: " + transactionGroupSize);
         }
         
         if (!isValidNeo4jUri(neo4jUri)) {
@@ -193,6 +216,8 @@ public class LoopyConfig {
         props.setProperty("report.interval.seconds", String.valueOf(reportIntervalSeconds));
         props.setProperty("csv.logging.enabled", String.valueOf(csvLoggingEnabled));
         props.setProperty("csv.logging.file", csvLoggingFile);
+        props.setProperty("transaction.mode", transactionMode);
+        props.setProperty("transaction.group.size", String.valueOf(transactionGroupSize));
         return props;
     }
 }

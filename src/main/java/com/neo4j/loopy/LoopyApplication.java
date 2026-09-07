@@ -127,6 +127,16 @@ public class LoopyApplication implements Callable<Integer> {
             description = "Statistics output format: summary, detailed, json",
             defaultValue = "summary")
     private String statsFormat;
+
+    @Option(names = {"--transaction-mode", "-m"},
+            description = "Transaction mode: auto-commit, explicit, managed-read, managed-write, execute-query",
+            defaultValue = "${LOOPY_TRANSACTION_MODE:-auto-commit}")
+    private String transactionMode;
+
+    @Option(names = {"--transaction-group-size", "-g"},
+            description = "Number of operations grouped into a single explicit/managed transaction (default: 1, no grouping). Applies to programmatic (non-YAML) mode.",
+            defaultValue = "${LOOPY_TRANSACTION_GROUP_SIZE:-1}")
+    private Integer transactionGroupSize;
     
     // Application state
     private LoopyConfig config;
@@ -157,6 +167,21 @@ public class LoopyApplication implements Callable<Integer> {
         // Validate stats-format
         if (statsFormat != null && !statsFormat.matches("^(summary|detailed|json)$")) {
             errors.add("Invalid stats-format: " + statsFormat + ". Expected: summary, detailed, or json");
+        }
+
+        // Validate transaction-mode
+        if (transactionMode != null) {
+            try {
+                com.neo4j.loopy.TransactionMode.fromString(transactionMode);
+            } catch (IllegalArgumentException e) {
+                errors.add("Invalid transaction-mode: " + transactionMode +
+                    ". Valid modes: auto-commit, explicit, managed-read, managed-write, execute-query");
+            }
+        }
+
+        // Validate transaction-group-size
+        if (transactionGroupSize != null && transactionGroupSize < 1) {
+            errors.add("Transaction group size must be at least 1, got: " + transactionGroupSize);
         }
         
         // Validate threads
@@ -339,6 +364,8 @@ public class LoopyApplication implements Callable<Integer> {
         if (reportInterval != null) args.addAll(List.of("--report.interval.seconds=" + reportInterval));
         if (csvLogging != null) args.addAll(List.of("--csv.logging.enabled=" + csvLogging));
         if (csvFile != null) args.addAll(List.of("--csv.logging.file=" + csvFile));
+        if (transactionMode != null) args.addAll(List.of("--transaction.mode=" + transactionMode));
+        if (transactionGroupSize != null) args.addAll(List.of("--transaction.group.size=" + transactionGroupSize));
         
         // Use existing override mechanism
         config.overrideFromArgs(args.toArray(new String[0]));
@@ -371,6 +398,7 @@ public class LoopyApplication implements Callable<Integer> {
                 System.out.println("  Mode: YAML Cypher Workload");
                 System.out.println("  Workload: " + workloadConfig.getName());
                 System.out.println("  Queries: " + workloadConfig.getQueries().size());
+                System.out.println("  Transaction Mode: " + config.getTransactionMode());
                 if (verbose) {
                     System.out.println("  Description: " + workloadConfig.getDescription());
                     System.out.println("  Verbose Stats: " + verboseStats);
@@ -379,6 +407,10 @@ public class LoopyApplication implements Callable<Integer> {
                 }
             } else {
                 System.out.println("  Mode: Programmatic Data Generation");
+                System.out.println("  Transaction Mode: " + config.getTransactionMode());
+                if (config.getTransactionGroupSize() > 1) {
+                    System.out.println("  Transaction Group Size: " + config.getTransactionGroupSize());
+                }
                 System.out.println("  Write Ratio: " + (config.getWriteRatio() * 100) + "%");
                 if (verbose) {
                     System.out.println("  Node Labels: " + config.getNodeLabels());
