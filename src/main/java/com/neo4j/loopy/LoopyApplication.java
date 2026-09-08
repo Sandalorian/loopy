@@ -43,7 +43,7 @@ public class LoopyApplication implements Callable<Integer> {
     
     @Option(names = {"--neo4j-uri", "-a"}, 
             description = "Neo4j connection URI",
-            defaultValue = "${LOOPY_NEO4J_URI:-bolt://localhost:7687}")
+            defaultValue = "${LOOPY_NEO4J_URI:-neo4j://localhost:7687}")
     private String neo4jUri;
     
     @Option(names = {"--username", "-u"}, 
